@@ -1,4 +1,11 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **19-08-2026**: Implementasi Dynamic DPI Selector (203.2, 300, 600 DPI) & Live Pipeline Re-rendering:
+  - **DPI Selector Control Panel**: Menambahkan Combobox Printer DPI pada `gui/components/control_panel.py` dengan preset `203.2 DPI (8 dpmm)`, `300 DPI (12 dpmm)`, dan `600 DPI (24 dpmm)`, beserta helper method `get_dpi()`.
+  - **Thread-Safe Pipeline Integration**: Mengalirkan dynamic DPI parameter melalui `gui/worker.py` (`RenderWorker`), `gui/main_window.py` (`execute_render`, `execute_dry_run`, `_perform_live_update`), dan `SVGInspectionEngine.build_inspection_map(..., dpi=dpi)`.
+  - **Live Auto Re-render on DPI Change**: Menghubungkan event `<<ComboboxSelected>>` pada combobox DPI ke `_on_dpi_changed()` di `MainWindow` dengan mekanisme debouncing (200ms) untuk auto re-render label secara instan saat resolusi printhead diubah.
+  - **Pengujian Multi-DPI**: Menambahkan parameterized unit tests di `tests/test_coordinate_alignment.py` untuk memvalidasi koordinat bounding box pada berbagai tingkatan DPI (203.2, 300, 600) serta parsing preset DPI (total 47 test cases lulus 100%).
+  - **Binary Rebuild**: Melakukan rebuild penuh binary PyInstaller `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
 - **19-08-2026**: Implementasi Phase 1: Perbaikan Bounding Box Coordinate Alignment dan Dotted Path Utilities:
   - **Akar Masalah Horizontal Shift**: `engine/binding_map.py` sebelumnya menghitung scaling factor menggunakan offset `root_box` (`target_width_px / (root_box[0] * 2 + root_box[2])`), menyebabkan penyimpangan koordinat hingga ~118px ke kanan pada elemen tengah/kanan kanvas.
   - **Perbaikan Formula Scaling**: Mengganti kalkulasi dengan rasio dimensi fisik murni:

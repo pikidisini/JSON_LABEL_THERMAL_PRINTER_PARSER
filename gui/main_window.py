@@ -49,6 +49,7 @@ class MainWindow(tk.Tk):
             on_dry_run_clicked=self.execute_dry_run,
             on_print_clicked=self.open_print_dialog,
             on_export_clicked=self.export_files,
+            on_dpi_changed=self._on_dpi_changed,
         )
         self.ctrl_panel.grid(row=0, column=0, sticky="ew", padx=6, pady=4)
 
@@ -87,6 +88,7 @@ class MainWindow(tk.Tk):
         json_path = Path(self.ctrl_panel.var_json_path.get())
         template_path = Path(self.ctrl_panel.var_template_path.get())
         target_format = self.ctrl_panel.var_format.get()
+        dpi_value = self.ctrl_panel.get_dpi()
 
         if not json_path.is_file():
             messagebox.showerror("Error", f"JSON file does not exist: {json_path}")
@@ -95,7 +97,7 @@ class MainWindow(tk.Tk):
             messagebox.showerror("Error", f"SVG template file does not exist: {template_path}")
             return
 
-        self._start_render_thread(json_path, template_path, target_format)
+        self._start_render_thread(json_path, template_path, target_format, dpi=dpi_value)
 
     def execute_dry_run(self):
         template_path = Path(self.ctrl_panel.var_template_path.get())
@@ -107,11 +109,13 @@ class MainWindow(tk.Tk):
             return
 
         self.ctrl_panel.var_json_path.set(str(self.default_sample_json.resolve()))
-        self._start_render_thread(self.default_sample_json, template_path, "all")
+        dpi_value = self.ctrl_panel.get_dpi()
+        self._start_render_thread(self.default_sample_json, template_path, "all", dpi=dpi_value)
 
-    def _start_render_thread(self, json_path: Path, template_path: Path, fmt: str):
+    def _start_render_thread(self, json_path: Path, template_path: Path, fmt: str, dpi: float = 203.2):
+        self._current_render_dpi = dpi
         self.progress_bar.start(10)
-        self.set_status("Rendering label & generating 1-bit bitmap...")
+        self.set_status(f"Rendering label @ {dpi} DPI & generating 1-bit bitmap...")
 
         worker = RenderWorker(
             parent=self,
@@ -121,6 +125,7 @@ class MainWindow(tk.Tk):
             fmt=fmt,
             on_success=self._on_render_success,
             on_error=self._on_render_error,
+            dpi=dpi,
         )
         worker.start()
 
@@ -133,15 +138,17 @@ class MainWindow(tk.Tk):
         except Exception as e:
             print(f"Warning: failed to load JSON into inspector: {e}")
 
-        # Extract & configure SVG interactive bounding boxes
+        # Extract & configure SVG interactive bounding boxes using current DPI
         svg_path = results.get("svg")
         template_file = Path(self.ctrl_panel.var_template_path.get())
+        current_dpi = getattr(self, "_current_render_dpi", 203.2)
         if svg_path and svg_path.is_file() and template_file.is_file():
             try:
                 self._current_template_content = template_file.read_text(encoding="utf-8")
                 bboxes = self.inspection_engine.build_inspection_map(
                     svg_content=self._current_template_content,
                     rendered_svg_path=svg_path,
+                    dpi=current_dpi,
                 )
                 self.raster_canvas.set_bounding_boxes(bboxes)
             except Exception as e:
@@ -154,7 +161,7 @@ class MainWindow(tk.Tk):
             self.raster_canvas.show_error("❌ Failed to render preview image (preview.png not found)")
 
         fmt_list = ", ".join([f.upper() for f in results.keys()])
-        self.set_status(f"[OK] Label rendered successfully! Generated: {fmt_list}")
+        self.set_status(f"[OK] Label rendered successfully @ {current_dpi} DPI! Generated: {fmt_list}")
 
     def _on_json_field_selected(self, json_path: str):
         """Dispatched when user clicks a row in the JSON Inspector tree."""
@@ -177,12 +184,30 @@ class MainWindow(tk.Tk):
             self.after_cancel(self._debounce_timer)
         self._debounce_timer = self.after(350, self._perform_live_update)
 
+    def _on_dpi_changed(self, new_dpi: float):
+        """Dispatched when user selects a different DPI in the Control Panel."""
+        self.set_status(f"DPI changed to {new_dpi}. Re-rendering preview...")
+        if self._debounce_timer is not None:
+            self.after_cancel(self._debounce_timer)
+        self._debounce_timer = self.after(200, self._perform_live_update)
+
     def _perform_live_update(self):
-        """Saves current JSON data to temp file and triggers asynchronous render."""
+        """Saves current JSON data to temp file and triggers asynchronous render with selected DPI."""
         self._debounce_timer = None
         data = self.json_inspector.get_data()
         if not data:
-            return
+            # Fallback to source JSON if inspector is empty
+            src_json = Path(self.ctrl_panel.var_json_path.get())
+            if src_json.is_file():
+                import json
+                try:
+                    with open(src_json, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                except Exception:
+                    return
+            else:
+                return
+
         temp_json = self.temp_out_dir / "temp_inspect.json"
         temp_json.parent.mkdir(parents=True, exist_ok=True)
         import json
@@ -191,7 +216,8 @@ class MainWindow(tk.Tk):
 
         template_path = Path(self.ctrl_panel.var_template_path.get())
         if template_path.is_file():
-            self._start_render_thread(temp_json, template_path, self.ctrl_panel.var_format.get())
+            dpi_val = self.ctrl_panel.get_dpi()
+            self._start_render_thread(temp_json, template_path, self.ctrl_panel.var_format.get(), dpi=dpi_val)
 
     def _on_render_error(self, err_msg: str):
         self.progress_bar.stop()

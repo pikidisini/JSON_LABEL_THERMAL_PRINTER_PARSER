@@ -49,6 +49,12 @@ class _ToolTip:
 class ControlPanelWidget(ttk.Frame):
     """Action bar & control panel for label inspection operations."""
 
+    DPI_PRESETS = [
+        "203.2 DPI (8 dpmm)",
+        "300 DPI (12 dpmm)",
+        "600 DPI (24 dpmm)",
+    ]
+
     def __init__(
         self,
         parent: tk.Widget,
@@ -56,6 +62,7 @@ class ControlPanelWidget(ttk.Frame):
         on_dry_run_clicked: Optional[Callable[[], None]] = None,
         on_print_clicked: Optional[Callable[[], None]] = None,
         on_export_clicked: Optional[Callable[[], None]] = None,
+        on_dpi_changed: Optional[Callable[[float], None]] = None,
         **kwargs,
     ):
         super().__init__(parent, **kwargs)
@@ -63,12 +70,24 @@ class ControlPanelWidget(ttk.Frame):
         self.on_dry_run_clicked = on_dry_run_clicked
         self.on_print_clicked = on_print_clicked
         self.on_export_clicked = on_export_clicked
+        self.on_dpi_changed = on_dpi_changed
 
         self.var_json_path = tk.StringVar()
         self.var_template_path = tk.StringVar()
         self.var_format = tk.StringVar(value="all")
+        self.var_dpi = tk.StringVar(value=self.DPI_PRESETS[0])
 
         self._build_ui()
+
+    def get_dpi(self) -> float:
+        """Parses and returns the currently selected DPI resolution as a float."""
+        val = self.var_dpi.get().strip()
+        try:
+            # Extract leading numeric part (e.g. '203.2' from '203.2 DPI (8 dpmm)')
+            dpi_str = val.split()[0] if val else "203.2"
+            return float(dpi_str)
+        except (ValueError, IndexError):
+            return 203.2
 
     def _build_ui(self):
         # Frame 1: File Pickers
@@ -87,19 +106,37 @@ class ControlPanelWidget(ttk.Frame):
 
         files_frame.columnconfigure(1, weight=1)
 
-        # Frame 2: Options & Format
-        opts_frame = ttk.LabelFrame(self, text="Target Format", padding=6)
+        # Frame 2: Format & DPI Settings
+        opts_frame = ttk.LabelFrame(self, text="Output & DPI Settings", padding=6)
         opts_frame.pack(side="left", fill="y", padx=4, pady=2)
 
-        ttk.Label(opts_frame, text="Format:").pack(side="top", anchor="w")
+        # Format Combobox
+        fmt_container = ttk.Frame(opts_frame)
+        fmt_container.pack(side="left", padx=3, pady=0)
+        ttk.Label(fmt_container, text="Format:").pack(side="top", anchor="w")
         cb_format = ttk.Combobox(
-            opts_frame,
+            fmt_container,
             textvariable=self.var_format,
             values=["all", "zpl", "tspl", "ipl", "svg", "png", "bmp"],
             state="readonly",
-            width=12,
+            width=8,
         )
         cb_format.pack(side="top", pady=2, fill="x")
+
+        # DPI Combobox
+        dpi_container = ttk.Frame(opts_frame)
+        dpi_container.pack(side="left", padx=3, pady=0)
+        ttk.Label(dpi_container, text="Printer DPI:").pack(side="top", anchor="w")
+        cb_dpi = ttk.Combobox(
+            dpi_container,
+            textvariable=self.var_dpi,
+            values=self.DPI_PRESETS,
+            state="readonly",
+            width=16,
+        )
+        cb_dpi.pack(side="top", pady=2, fill="x")
+        cb_dpi.bind("<<ComboboxSelected>>", self._handle_dpi_selected)
+        _ToolTip(cb_dpi, "Select thermal printhead resolution (203.2 / 300 / 600 DPI)")
 
         # Frame 3: Action Buttons
         actions_frame = ttk.LabelFrame(self, text="Engine Actions", padding=6)
@@ -167,6 +204,10 @@ class ControlPanelWidget(ttk.Frame):
         )
         btn_export.pack(side="left", padx=4, pady=2)
         _ToolTip(btn_export, "Simpan file hasil render (SVG/PNG/BMP/ZPL/TSPL/IPL) ke folder tujuan")
+
+    def _handle_dpi_selected(self, _event=None):
+        if self.on_dpi_changed:
+            self.on_dpi_changed(self.get_dpi())
 
     def _browse_json(self):
         filename = filedialog.askopenfilename(

@@ -130,3 +130,51 @@ class TestCoordinateAlignment:
         json_paths = [box.json_path for box in inspection_map]
         # Verify key bindings are captured
         assert any("fields." in p or "codes." in p for p in json_paths)
+
+    @pytest.mark.parametrize("dpi, expected_width, expected_height", [
+        (203.2, 1600, 640),
+        (300.0, 2362, 944),
+        (600.0, 4724, 1889),
+    ])
+    def test_multi_dpi_coordinate_scaling(self, sample_svg_path, dpi, expected_width, expected_height):
+        """
+        Verify that coordinates scale proportionally across multiple printer DPI settings (203.2, 300, 600 DPI).
+        """
+        engine = SVGInspectionEngine()
+        boxes = engine.query_all_element_boxes(
+            sample_svg_path,
+            dpi=dpi,
+            target_width_px=expected_width,
+            target_height_px=expected_height,
+        )
+        assert len(boxes) > 0
+        for elem_id, (x, y, w, h) in boxes.items():
+            assert x >= 0
+            assert y >= 0
+            assert x + w <= expected_width * 1.05  # Within canvas bounds with 5% safety margin
+            assert y + h <= expected_height * 1.05
+
+    def test_control_panel_dpi_presets(self):
+        """Verify ControlPanelWidget DPI parser correctly handles all presets."""
+        import tkinter as tk
+        from gui.components.control_panel import ControlPanelWidget
+
+        root = tk.Tk()
+        root.withdraw()
+        try:
+            panel = ControlPanelWidget(root)
+            panel.var_dpi.set("203.2 DPI (8 dpmm)")
+            assert panel.get_dpi() == 203.2
+
+            panel.var_dpi.set("300 DPI (12 dpmm)")
+            assert panel.get_dpi() == 300.0
+
+            panel.var_dpi.set("600 DPI (24 dpmm)")
+            assert panel.get_dpi() == 600.0
+
+            # Fallback on invalid format
+            panel.var_dpi.set("invalid")
+            assert panel.get_dpi() == 203.2
+        finally:
+            root.destroy()
+

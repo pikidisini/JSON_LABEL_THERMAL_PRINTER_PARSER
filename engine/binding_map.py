@@ -306,5 +306,3 @@ class SVGInspectionEngine:
                     )
 
         return all_boxes
-        margin = 3.0
-        return (self.x - margin <= px <= self.x2 + margin) and (self.y - margin <= py <= self.y2 + margin)
