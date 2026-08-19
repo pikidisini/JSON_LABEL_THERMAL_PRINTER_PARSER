@@ -26,6 +26,12 @@ class RasterCanvasWidget(ttk.Frame):
         self._zoom_factor: float = 0.5
         self._image_item = None
         self._pan_start = None
+        self.on_canvas_element_clicked = None
+        self._bounding_boxes = []  # List[BoundingBox]
+        self._highlighted_path: Optional[str] = None
+        self._highlight_items = []
+        self._drag_threshold_passed = False
+
         self._user_has_zoomed = False
         self._build_ui()
 
@@ -106,6 +112,8 @@ class RasterCanvasWidget(ttk.Frame):
 
 
     def load_image(self, image_source: Union[str, Path, Image.Image]) -> None:
+        self.canvas.bind("<Motion>", self._on_mouse_move)
+
         """Loads a raster image file or PIL Image object and auto-fits it to the window (default view)."""
         try:
             if isinstance(image_source, (str, Path)):
@@ -167,6 +175,8 @@ class RasterCanvasWidget(ttk.Frame):
         self._image_item = self.canvas.create_image(margin, margin, anchor="nw", image=self._tk_image)
         self.canvas.config(scrollregion=(0, 0, new_w + margin * 2, new_h + margin * 2))
         self.lbl_zoom.config(text=f"{int(self._zoom_factor * 100)}%")
+        self._redraw_highlights()
+
 
     def _center_image(self):
         """Centers the image within the visible canvas area so it is never clipped."""
@@ -244,17 +254,149 @@ class RasterCanvasWidget(ttk.Frame):
         if self._pil_image and not self._user_has_zoomed:
             self._fit_window()
 
+    def set_bounding_boxes(self, boxes) -> None:
+        """Sets the list of BoundingBox objects and refreshes highlights."""
+        self._bounding_boxes = list(boxes) if boxes else []
+        self._redraw_highlights()
+
+    def highlight_path(self, json_path: Optional[str]) -> None:
+        """Highlights bounding boxes associated with a specific JSON path and centers the view."""
+        self._highlighted_path = json_path
+        self._redraw_highlights()
+        if json_path:
+            self._center_on_highlight(json_path)
+
+    def _get_image_offset(self):
+        if not self._image_item:
+            return 20, 20
+        coords = self.canvas.coords(self._image_item)
+        if len(coords) >= 2:
+            return coords[0], coords[1]
+        return 20, 20
+
+    def _redraw_highlights(self) -> None:
+        """Draws glowing vector rectangle overlays over active elements."""
+        for item_id in self._highlight_items:
+            self.canvas.delete(item_id)
+        self._highlight_items.clear()
+
+        if not self._pil_image or not self._bounding_boxes:
+            return
+
+        off_x, off_y = self._get_image_offset()
+        zoom = self._zoom_factor
+
+        for box in self._bounding_boxes:
+            # Check match: exact or suffix
+            is_active = False
+            if self._highlighted_path:
+                if box.json_path == self._highlighted_path or \
+                   box.json_path.endswith(f".{self._highlighted_path}") or \
+                   self._highlighted_path.endswith(f".{box.json_path}"):
+                    is_active = True
+
+            if is_active:
+                x1 = off_x + box.x * zoom
+                y1 = off_y + box.y * zoom
+                x2 = off_x + box.x2 * zoom
+                y2 = off_y + box.y2 * zoom
+
+                # Outer high-contrast shadow & inner vibrant border
+                outer = self.canvas.create_rectangle(
+                    x1 - 2, y1 - 2, x2 + 2, y2 + 2,
+                    outline="#ffffff", width=4, tags="highlight_overlay"
+                )
+                inner = self.canvas.create_rectangle(
+                    x1, y1, x2, y2,
+                    outline="#007acc", width=2, tags="highlight_overlay"
+                )
+                self._highlight_items.extend([outer, inner])
+
+    def _center_on_highlight(self, json_path: str) -> None:
+        """Smoothly pans canvas viewport so the highlighted element is centered."""
+        matching = [b for b in self._bounding_boxes if b.json_path == json_path or b.json_path.endswith(f".{json_path}")]
+        if not matching:
+            return
+        box = matching[0]
+        off_x, off_y = self._get_image_offset()
+        zoom = self._zoom_factor
+
+        cx = off_x + (box.x + box.width / 2.0) * zoom
+        cy = off_y + (box.y + box.height / 2.0) * zoom
+
+        region = self.canvas.bbox("all")
+        if not region:
+            return
+        region_w = region[2] - region[0]
+        region_h = region[3] - region[1]
+        canvas_w = self.canvas.winfo_width()
+        canvas_h = self.canvas.winfo_height()
+
+        if region_w > 0 and canvas_w > 0:
+            target_x = max(0.0, min(1.0, (cx - canvas_w / 2.0) / region_w))
+            self.canvas.xview_moveto(target_x)
+        if region_h > 0 and canvas_h > 0:
+            target_y = max(0.0, min(1.0, (cy - canvas_h / 2.0) / region_h))
+            self.canvas.yview_moveto(target_y)
+
+    def _canvas_to_image_coords(self, event_x: int, event_y: int):
+        """Converts canvas event coordinates to original raster image pixel space."""
+        cx = self.canvas.canvasx(event_x)
+        cy = self.canvas.canvasy(event_y)
+        off_x, off_y = self._get_image_offset()
+        zoom = self._zoom_factor
+        if zoom <= 0:
+            return None, None
+        img_px = (cx - off_x) / zoom
+        img_py = (cy - off_y) / zoom
+        return img_px, img_py
+
+    def _find_box_at(self, img_px: float, img_py: float):
+        """Finds the smallest bounding box containing (img_px, img_py)."""
+        candidates = [b for b in self._bounding_boxes if b.contains_point(img_px, img_py)]
+        if not candidates:
+            return None
+        # Sort by area ascending so smaller child elements take precedence over containers
+        candidates.sort(key=lambda b: b.width * b.height)
+        return candidates[0]
+
+    def _on_mouse_move(self, event):
+        """Changes cursor to pointing hand when hovering over an interactive element."""
+        if not self._bounding_boxes or not self._pil_image:
+            return
+        px, py = self._canvas_to_image_coords(event.x, event.y)
+        if px is not None and py is not None:
+            box = self._find_box_at(px, py)
+            self.canvas.config(cursor="hand2" if box else "")
+
+
     def _on_pan_start(self, event):
         self.canvas.scan_mark(event.x, event.y)
-        self.canvas.config(cursor="fleur")
         self._pan_start = (event.x, event.y)
+        self._drag_threshold_passed = False
 
     def _on_pan_move(self, event):
         if self._pan_start is not None:
-            self.canvas.scan_dragto(event.x, event.y, gain=1)
+            dx = abs(event.x - self._pan_start[0])
+            dy = abs(event.y - self._pan_start[1])
+            if dx > 4 or dy > 4:
+                self._drag_threshold_passed = True
+                self.canvas.config(cursor="fleur")
+                self.canvas.scan_dragto(event.x, event.y, gain=1)
 
     def _on_pan_end(self, event):
+        if not self._drag_threshold_passed and self._pan_start is not None:
+            # It's a clean click without pan: perform element selection!
+            px, py = self._canvas_to_image_coords(event.x, event.y)
+            if px is not None and py is not None:
+                box = self._find_box_at(px, py)
+                if box:
+                    self.highlight_path(box.json_path)
+                    if self.on_canvas_element_clicked:
+                        self.on_canvas_element_clicked(box.json_path)
+
         self._pan_start = None
+        self._drag_threshold_passed = False
         self.canvas.config(cursor="hand2")
 
     def _on_mousewheel_zoom(self, event):

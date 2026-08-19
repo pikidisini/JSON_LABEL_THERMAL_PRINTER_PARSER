@@ -1,6 +1,13 @@
 # Git Automation Rules
-- Setelah menyelesaikan setiap perbaikan bug, penambahan fitur, atau tugas utama:
-  1. Jalankan `git status` untuk memeriksa perubahan.
-  2. Lakukan `git add .` untuk file yang relevan.
-  3. Buat `git commit` dengan pesan commit konvensional yang jelas (contoh: `feat: add user login`).
-  4. Lakukan `git push origin main` secara otomatis.
+
+- **Branch Management**:
+  - DILARANG melakukan `git push` langsung ke branch `main` atau `master`.
+  - Sebelum membuat perubahan atau menyelesaikan tugas, pastikan bekerja di feature branch tersendiri (contoh: `feature/nama-fitur` atau `fix/nama-bug`).
+  - Jika masih di branch `main`, buat branch baru terlebih dahulu: `git checkout -b feature/deskripsi-singkat`.
+
+- **Workflow Setelah Tugas Selesai**:
+  1. Jalankan `git status` untuk memeriksa perubahan file.
+  2. Lakukan `git add .` untuk mengumpulkan file yang relevan.
+  3. Buat `git commit` dengan pesan standar konvensional (contoh: `feat: add svg parser` atau `fix: resolve dax alignment`).
+  4. Lakukan `git push origin <nama-feature-branch>` ke remote repository.
+  5. Berikan kabar ke pengguna bahwa push ke feature branch telah selesai dan berikan instruksi/link jika ingin membuat **Pull Request (PR)** ke branch `main`.

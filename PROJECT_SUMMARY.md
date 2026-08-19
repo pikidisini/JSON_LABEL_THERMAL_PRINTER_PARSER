@@ -1,4 +1,12 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **19-08-2026**: Mengimplementasikan fitur **Interactive Two-Way Inspection Mode & Live Value Editing** antara SAP JSON Contract Tree dan Visual Thermal Canvas Preview:
+  - Membuat modul `engine/binding_map.py` (`SVGInspectionEngine`) untuk mengekstrak data binding (`data-field`, `data-code`, `{{token}}`), memanggil `resvg.exe --query-all`, dan mengkalibrasi koordinat bounding box ke target raster canvas.
+  - Memperbarui `gui/components/json_inspector.py` dengan tracking path hierarki, metode `select_path()`, event selection, dan inline double-click editing nilai leaf JSON.
+  - Memperbarui `gui/components/raster_canvas.py` dengan vector glowing highlight overlays, translation klik kanvas ke JSON path, auto-centering viewport, dan hover indicator.
+  - Memperbarui `gui/main_window.py` untuk mengintegrasikan dua arah binding JSON <-> Canvas, debounce live re-render saat nilai diedit (350ms), serta menambahkan opsi target format `svg` di `gui/components/control_panel.py`.
+  - Menambahkan unit test baru di `tests/test_gui_components.py` untuk memvalidasi pemetaan bounding box dan interaktivitas seleksi/edit.
+
+
 - **19-08-2026**: Membuat file `README.md` komprehensif yang mencakup ringkasan arsitektur 3-layer, fitur, struktur direktori, instalasi, panduan CLI & GUI, panduan kontrak JSON v1.1, pembuatan template SVG, dan build executable.
 
 - **19-08-2026**: Menginisialisasi Git repository lokal, melengkapi `.gitignore`, mengonfigurasi remote origin (`https://github.com/pikidisini/JSON_LABEL_THERMAL_PRINTER_PARSER.git`), dan melakukan initial push ke branch `main`.
