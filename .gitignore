@@ -1,0 +1,39 @@
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Binary assets (downloaded executables)
+engine/bin/*.exe
+!engine/bin/.gitkeep
+
+# Output directories & test files
+out/
+out_*.svg
+out_*.png
+out_*.bmp
+out_*.zpl
+out_*.tspl
+out_*.ipl
+
+# Build & Distribution
+build/
+dist/
+dist_out/
+*.spec
+out_test_encoders/
+out_test_raster/
+
+# Editor & History
+.history/
+.vscode/
+.env
+

@@ -1,0 +1,6 @@
+# Git Automation Rules
+- Setelah menyelesaikan setiap perbaikan bug, penambahan fitur, atau tugas utama:
+  1. Jalankan `git status` untuk memeriksa perubahan.
+  2. Lakukan `git add .` untuk file yang relevan.
+  3. Buat `git commit` dengan pesan commit konvensional yang jelas (contoh: `feat: add user login`).
+  4. Lakukan `git push origin main` secara otomatis.
