@@ -133,8 +133,8 @@ class TestCoordinateAlignment:
 
     @pytest.mark.parametrize("dpi, expected_width, expected_height", [
         (203.2, 1600, 640),
-        (300.0, 2362, 944),
-        (600.0, 4724, 1889),
+        (300.0, 2368, 944),
+        (600.0, 4728, 1889),
     ])
     def test_multi_dpi_coordinate_scaling(self, sample_svg_path, dpi, expected_width, expected_height):
         """

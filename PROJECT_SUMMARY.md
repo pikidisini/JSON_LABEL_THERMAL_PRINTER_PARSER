@@ -1,4 +1,15 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **19-08-2026**: Perbaikan Bug: 8-Bit Byte Alignment untuk Thermal Encoders (IPL, TSPL, ZPL) pada Multi-DPI (600 DPI):
+  - **Akar Masalah**: Pada 600 DPI, kalkulasi lebar $(\text{200 mm} / 25.4) \times 600 = 4724\text{ px}$ tidak habis dibagi 8 ($4724 \pmod 8 = 4$). Hal ini memicu `ValueError` pada `ipl_encoder.py` karena protokol IPL mewajibkan alignment byte utuh ($width \pmod 8 = 0$) untuk mencegah korupsi stream bitmap kontinu.
+  - **8-Bit Byte Alignment Formula (`engine/processor.py`)**: Menambahkan fungsi `align_to_byte_boundary(pixels, alignment=8)` yang memastikan lebar piksel selalu dibulatkan ke kelipatan 8 terdekat ke atas ($((raw\_w + 7) // 8) * 8$):
+    - 203.2 DPI $\rightarrow 1600\text{ px}$ (200 bytes/row)
+    - 300.0 DPI $\rightarrow 2368\text{ px}$ (296 bytes/row)
+    - 600.0 DPI $\rightarrow 4728\text{ px}$ (591 bytes/row)
+  - **Rasterizer Exact Target Fitting (`engine/rasterizer.py`)**: Memperbarui `svg_to_png()` agar memvalidasi dan mem-pad PNG output ke kanvas dimensi eksak $(target\_w\_px, target\_h\_px)$ dengan latar belakang putih murni, mencegah perbedaan dimensi akibat preserve-aspect-ratio resvg.
+  - **Sinkronisasi GUI Canvas & Inspection Map (`gui/main_window.py`)**: Menyelaraskan kalkulasi `target_w_px` pada `_on_render_success` dengan formula kelipatan 8 yang sama.
+  - **Pengujian & Validasi**: Menambahkan unit test `test_600_dpi_all_formats_including_ipl` dan memperbarui `test_dynamic_dpi_resolutions` di `tests/test_processor.py` serta parameterized scaling di `tests/test_coordinate_alignment.py`. Semua unit test lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh binary PyInstaller `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
 - **19-08-2026**: Perbaikan Bug: Dynamic DPI Resolution Scaling & Real-time Canvas Header Update:
   - **Dynamic Dimension Calculation**: Memperbarui `engine/processor.py` (`process_label`) agar menghitung resolusi pixel kanvas secara dinamis berdasarkan formula dimensi fisik $(\text{Width}_{mm} / 25.4) \times \text{DPI}$ dan $(\text{Height}_{mm} / 25.4) \times \text{DPI}$ (203.2 DPI $\rightarrow$ 1600x640 px, 300 DPI $\rightarrow$ 2362x945 px, 600 DPI $\rightarrow$ 4724x1890 px) alih-alih hardcode 1600x640 px.
   - **Dynamic Canvas Header & Resolution Label**: Memperbarui `gui/components/raster_canvas.py` (`RasterCanvasWidget`) dengan menambahkan `self.lbl_title`, `set_canvas_metadata()`, dan memperbarui `load_image()` sehingga judul preview `"Visual Thermal Print Preview ({dpi} DPI)"` dan label resolusi `"Resolution: {w} x {h} px ({mm_w:.1f} x {mm_h:.1f} mm @ {dpi} DPI)"` selalu sinkron secara dinamis dengan DPI aktif.

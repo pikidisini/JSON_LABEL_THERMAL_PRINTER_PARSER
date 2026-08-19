@@ -61,13 +61,13 @@ class TestProcessorFormats(unittest.TestCase):
             self.assertTrue(results[fmt].is_file(), f"Expected {fmt} file to exist")
 
     def test_dynamic_dpi_resolutions(self):
-        """Verifies that preview.png dimensions scale up dynamically with selected DPI."""
+        """Verifies that preview.png dimensions scale up dynamically with selected DPI and 8-bit alignment."""
         from PIL import Image
 
         dpi_cases = [
             (203.2, 1600, 640),
-            (300.0, 2362, 945),
-            (600.0, 4724, 1890),
+            (300.0, 2368, 945),
+            (600.0, 4728, 1890),
         ]
         for dpi, expected_w, expected_h in dpi_cases:
             sub_out = self.temp_out / f"dpi_{int(dpi)}"
@@ -81,9 +81,27 @@ class TestProcessorFormats(unittest.TestCase):
             )
             with Image.open(results["png"]) as img:
                 w, h = img.size
+                # Width must be strictly divisible by 8 for printer byte alignment
+                self.assertEqual(w % 8, 0, f"Width {w} at DPI {dpi} is not a multiple of 8")
                 # Tolerances of +/- 2px due to integer rounding
                 self.assertAlmostEqual(w, expected_w, delta=2)
                 self.assertAlmostEqual(h, expected_h, delta=2)
+
+    def test_600_dpi_all_formats_including_ipl(self):
+        """Verifies that 600 DPI with formats='all' (including IPL) renders and encodes without byte-alignment error."""
+        sub_out = self.temp_out / "dpi_600_all"
+        sub_out.mkdir(parents=True, exist_ok=True)
+        results = process_label(
+            json_source=self.json_path,
+            template_source=self.svg_path,
+            out_dir=sub_out,
+            formats="all",
+            dpi=600.0,
+        )
+        for fmt in ["svg", "png", "bmp", "zpl", "tspl", "ipl"]:
+            self.assertIn(fmt, results)
+            self.assertTrue(results[fmt].is_file(), f"Expected {fmt} file to exist for 600 DPI")
+            self.assertTrue(results[fmt].stat().st_size > 0)
 
 
 if __name__ == "__main__":

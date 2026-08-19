@@ -142,7 +142,8 @@ class MainWindow(tk.Tk):
         svg_path = results.get("svg")
         template_file = Path(self.ctrl_panel.var_template_path.get())
         current_dpi = getattr(self, "_current_render_dpi", 203.2)
-        target_w_px = int(round((200.0 / 25.4) * current_dpi))
+        raw_w_px = int(round((200.0 / 25.4) * current_dpi))
+        target_w_px = ((raw_w_px + 7) // 8) * 8
         target_h_px = int(round((80.0 / 25.4) * current_dpi))
 
         if svg_path and svg_path.is_file() and template_file.is_file():

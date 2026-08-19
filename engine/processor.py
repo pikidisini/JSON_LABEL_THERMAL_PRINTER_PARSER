@@ -23,6 +23,14 @@ from .bit_packer import get_raw_bitmap_data
 from .printer_encoders import encode_zpl, encode_tspl, encode_ipl
 
 
+def align_to_byte_boundary(pixels: int, alignment: int = 8) -> int:
+    """
+    Aligns pixel dimension (width) up to the nearest multiple of alignment (default 8 dots / 1 byte).
+    Ensures bitmap row-padding and byte-stream alignment for thermal printer encoders (IPL, ZPL, TSPL).
+    """
+    return ((pixels + alignment - 1) // alignment) * alignment
+
+
 def process_label(
     json_source: Union[str, Path, dict],
     template_source: Union[str, Path],
@@ -43,8 +51,9 @@ def process_label(
     output_dir = Path(out_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Calculate dynamic pixel resolution if not explicitly specified
-    target_w_px = int(round((width_mm / 25.4) * dpi)) if width_px is None else width_px
+    # Calculate dynamic pixel resolution if not explicitly specified (aligned to 8-dot byte boundary)
+    raw_w_px = int(round((width_mm / 25.4) * dpi)) if width_px is None else width_px
+    target_w_px = align_to_byte_boundary(raw_w_px, alignment=8)
     target_h_px = int(round((height_mm / 25.4) * dpi)) if height_px is None else height_px
 
     if isinstance(formats, str):

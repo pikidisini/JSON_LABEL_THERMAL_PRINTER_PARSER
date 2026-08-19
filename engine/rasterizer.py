@@ -106,6 +106,16 @@ def svg_to_png(
         if not out_p.is_file():
             raise FileNotFoundError(f"Output PNG not created by resvg: {out_p}")
 
+        # Ensure rendered PNG exactly matches target dimensions with clean 8-dot byte alignment
+        if width_px is not None and height_px is not None:
+            with Image.open(out_p) as rendered_img:
+                if rendered_img.size != (width_px, height_px):
+                    mode = "RGBA" if rendered_img.mode == "RGBA" else "RGB"
+                    bg_color = (255, 255, 255, 255) if mode == "RGBA" else (255, 255, 255)
+                    aligned_canvas = Image.new(mode, (width_px, height_px), bg_color)
+                    aligned_canvas.paste(rendered_img, (0, 0))
+                    aligned_canvas.save(out_p, format="PNG")
+
         return out_p
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(f"resvg rendering timed out after {timeout} seconds: {e}") from e
