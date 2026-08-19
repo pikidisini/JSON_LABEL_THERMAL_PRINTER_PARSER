@@ -1,4 +1,6 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **19-08-2026**: Membuat file `README.md` komprehensif yang mencakup ringkasan arsitektur 3-layer, fitur, struktur direktori, instalasi, panduan CLI & GUI, panduan kontrak JSON v1.1, pembuatan template SVG, dan build executable.
+
 - **19-08-2026**: Menginisialisasi Git repository lokal, melengkapi `.gitignore`, mengonfigurasi remote origin (`https://github.com/pikidisini/JSON_LABEL_THERMAL_PRINTER_PARSER.git`), dan melakukan initial push ke branch `main`.
 
 
