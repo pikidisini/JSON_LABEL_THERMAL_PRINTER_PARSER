@@ -10,15 +10,28 @@ from gui.components import JSONInspectorWidget, RasterCanvasWidget
 
 
 class TestGUIComponents(unittest.TestCase):
-    def setUp(self):
-        self.project_root = Path(__file__).parent.parent
-        self.sample_json = self.project_root / "data_samples" / "sample_roll.json"
-        self.sample_png = self.project_root / "out" / "preview.png"
-        self.root = tk.Tk()
-        self.root.withdraw()  # Headless mode without displaying window
+    @classmethod
+    def setUpClass(cls):
+        cls.project_root = Path(__file__).parent.parent
+        cls.sample_json = cls.project_root / "data_samples" / "sample_roll.json"
+        cls.sample_png = cls.project_root / "out" / "preview.png"
+        try:
+            cls.root = tk.Tk()
+            cls.root.withdraw()  # Headless mode without displaying window
+        except Exception:
+            cls.root = None
 
-    def tearDown(self):
-        self.root.destroy()
+    @classmethod
+    def tearDownClass(cls):
+        if cls.root is not None:
+            try:
+                cls.root.destroy()
+            except Exception:
+                pass
+
+    def setUp(self):
+        if self.root is None:
+            self.skipTest("Tkinter is not available or graphical display failed to initialize")
 
     def test_json_inspector_population(self):
         inspector = JSONInspectorWidget(self.root)

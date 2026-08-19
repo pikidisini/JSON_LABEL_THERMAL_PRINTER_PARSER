@@ -35,9 +35,12 @@ class BoundingBox:
     def y2(self) -> float:
         return self.y + self.height
 
-    def contains_point(self, px: float, py: float) -> bool:
-        """Checks if a point in pixel space falls inside this bounding box (with slight hit margin)."""
-        margin = 3.0
+    def contains_point(self, px: float, py: float, zoom_factor: float = 1.0) -> bool:
+        """
+        Checks if a point in pixel space falls inside this bounding box.
+        Margin is zoom-aware to provide consistent hit-testing precision across zoom levels.
+        """
+        margin = max(2.0, 4.0 / max(0.1, zoom_factor))
         return (self.x - margin <= px <= self.x2 + margin) and (self.y - margin <= py <= self.y2 + margin)
 
 
@@ -130,14 +133,59 @@ class SVGInspectionEngine:
         parent_map: Dict[ET.Element, ET.Element],
         ns: str
     ) -> Optional[str]:
+        """
+        Traverses upward to find an ancestor with an ID suitable for resvg query.
+        Prefers parent <text> or <g> over inner <tspan> to get the full bounding box.
+        """
         curr: Optional[ET.Element] = elem
+        tspan_id: Optional[str] = None
+
         while curr is not None:
             elem_id = curr.get("id")
             tag_name = curr.tag.replace(ns, "")
-            if elem_id and tag_name != "tspan":
-                return elem_id
+            if elem_id:
+                if tag_name == "tspan" and tspan_id is None:
+                    tspan_id = elem_id
+                elif tag_name != "tspan":
+                    # Found ancestor <text>, <rect>, <g>, etc.
+                    return elem_id
             curr = parent_map.get(curr)
-        return None
+
+        return tspan_id
+
+    def _parse_svg_dimensions(self, svg_file_path: Union[str, Path]) -> Tuple[float, float]:
+        """
+        Parses physical SVG width and height in mm from viewBox or width/height attributes.
+        Defaults to (200.0, 80.0) mm if not explicitly specified.
+        """
+        try:
+            tree = ET.parse(svg_file_path)
+            root = tree.getroot()
+            vb = root.get("viewBox")
+            if vb:
+                parts = [float(p) for p in re.split(r"[\s,]+", vb.strip()) if p]
+                if len(parts) >= 4 and parts[2] > 0 and parts[3] > 0:
+                    return parts[2], parts[3]
+
+            w_str = root.get("width", "200mm")
+            h_str = root.get("height", "80mm")
+
+            def to_mm(val: str, default: float) -> float:
+                v = val.strip().lower()
+                if v.endswith("mm"):
+                    return float(v[:-2])
+                elif v.endswith("in"):
+                    return float(v[:-2]) * 25.4
+                elif v.endswith("px"):
+                    return float(v[:-2]) * (25.4 / 96.0)
+                try:
+                    return float(v)
+                except ValueError:
+                    return default
+
+            return to_mm(w_str, 200.0), to_mm(h_str, 80.0)
+        except Exception:
+            return 200.0, 80.0
 
 
 
@@ -150,16 +198,22 @@ class SVGInspectionEngine:
     ) -> Dict[str, Tuple[float, float, float, float]]:
         """
         Runs resvg --dpi <dpi> --query-all to extract raw element bounding boxes,
-        then scales them to match the exact target raster width/height.
+        then scales them precisely to match the exact target raster width/height.
+
+        Accurate scale ratio mapping:
+        Scale_X = PNG_Width / (SVG_Width_mm / 25.4 * DPI)
+        Scale_Y = PNG_Height / (SVG_Height_mm / 25.4 * DPI)
+        
         Returns: { element_id: (x, y, width, height) in px }
         """
         svg_path = Path(svg_file_path)
         if not svg_path.is_file():
             return {}
 
+        cmd_dpi = int(round(dpi))
         cmd = [
             str(self.resvg_exe),
-            "--dpi", str(int(round(dpi))),
+            "--dpi", str(cmd_dpi),
             "--query-all",
             str(svg_path.resolve()),
         ]
@@ -195,15 +249,13 @@ class SVGInspectionEngine:
                 except ValueError:
                     continue
 
-        root_box = boxes.get("svg1") or boxes.get("root") or boxes.get("layer1")
-        if root_box and root_box[2] > 0 and root_box[3] > 0:
-            scale_x = target_width_px / (root_box[0] * 2 + root_box[2]) if root_box[0] > 0 else target_width_px / root_box[2]
-            scale_y = target_height_px / (root_box[1] * 2 + root_box[3]) if root_box[1] > 0 else target_height_px / root_box[3]
-        else:
-            base_w = (200.0 / 25.4) * dpi
-            base_h = (80.0 / 25.4) * dpi
-            scale_x = target_width_px / base_w if base_w > 0 else 1.0
-            scale_y = target_height_px / base_h if base_h > 0 else 1.0
+        # Compute direct physical SVG scale ratio to target raster pixel dimensions
+        svg_w_mm, svg_h_mm = self._parse_svg_dimensions(svg_path)
+        svg_rendered_w = (svg_w_mm / 25.4) * cmd_dpi
+        svg_rendered_h = (svg_h_mm / 25.4) * cmd_dpi
+
+        scale_x = target_width_px / svg_rendered_w if svg_rendered_w > 0 else 1.0
+        scale_y = target_height_px / svg_rendered_h if svg_rendered_h > 0 else 1.0
 
         scaled_boxes: Dict[str, Tuple[float, float, float, float]] = {}
         for elem_id, (x, y, w, h) in boxes.items():

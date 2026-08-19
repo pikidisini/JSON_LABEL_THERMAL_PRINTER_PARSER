@@ -353,7 +353,7 @@ class RasterCanvasWidget(ttk.Frame):
 
     def _find_box_at(self, img_px: float, img_py: float):
         """Finds the smallest bounding box containing (img_px, img_py)."""
-        candidates = [b for b in self._bounding_boxes if b.contains_point(img_px, img_py)]
+        candidates = [b for b in self._bounding_boxes if b.contains_point(img_px, img_py, self._zoom_factor)]
         if not candidates:
             return None
         # Sort by area ascending so smaller child elements take precedence over containers

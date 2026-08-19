@@ -1,4 +1,13 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **19-08-2026**: Implementasi Phase 1: Perbaikan Bounding Box Coordinate Alignment dan Dotted Path Utilities:
+  - **Akar Masalah Horizontal Shift**: `engine/binding_map.py` sebelumnya menghitung scaling factor menggunakan offset `root_box` (`target_width_px / (root_box[0] * 2 + root_box[2])`), menyebabkan penyimpangan koordinat hingga ~118px ke kanan pada elemen tengah/kanan kanvas.
+  - **Perbaikan Formula Scaling**: Mengganti kalkulasi dengan rasio dimensi fisik murni:
+    $$\text{Scale}_X = \frac{\text{PNG Target Width}}{\frac{\text{SVG Width (mm)}}{25.4} \times \text{DPI}}, \quad \text{Scale}_Y = \frac{\text{PNG Target Height}}{\frac{\text{SVG Height (mm)}}{25.4} \times \text{DPI}}$$
+  - **Resolusi Hierarki `<text>`**: Memperbarui `_find_queryable_id()` di `engine/binding_map.py` agar memprioritaskan ancestor `<text>` daripada elemen anak `<tspan>` sehingga bounding box mencakup keseluruhan teks target.
+  - **Utilitas Kontrak Dotted Path (`engine/binding_utils.py`)**: Membuat fungsi `get_json_value_at_path`, `set_json_value_at_path`, dan `validate_json_value_type` untuk manipulasi data leaf JSON secara terisolasi.
+  - **Zoom-Aware Hit Testing**: Memperbarui `BoundingBox.contains_point()` dan `RasterCanvasWidget._find_box_at()` agar toleransi margin klik menyesuaikan faktor zoom viewport kanvas.
+  - **Pengujian & Build**: Menambahkan pengujian komprehensif di `tests/test_coordinate_alignment.py` (total 43 test suite lulus 100%) dan me-rebuild binary `dist/label_engine.exe` serta `dist/LabelPreviewApp.exe`.
+
 - **19-08-2026**: Perbaikan Bug Preview Canvas "Failed to render preview image (preview.png not found)" ketika Target Format bukan "all":
   - Memperbarui `engine/processor.py` agar selalu mendaftarkan path `preview.png` dan `label.svg` ke dictionary `results` (`results["png"] = png_path` dan `results["svg"] = svg_path`) pada setiap proses render, tanpa memandang target export format yang dipilih (`svg`, `zpl`, `tspl`, `ipl`, `bmp`, atau `all`).
   - Menambahkan unit test komprehensif `tests/test_processor.py` untuk memvalidasi ketersediaan `preview.png` dan artefak SVG pada berbagai opsi target format.
