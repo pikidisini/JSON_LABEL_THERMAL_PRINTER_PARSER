@@ -1,5 +1,12 @@
-# Git Automation Rules
+# Build Automation Rules
+- Setiap kali Anda selesai melakukan perubahan kode, perbaikan bug, atau penambahan fitur yang memengaruhi logic/UI aplikasi:
+  1. Anda HARUS selalu me-rebuild file eksekutabel berikut agar biner terbaru selalu siap pakai:
+     - `label_engine.exe`
+     - `LabelPreviewApp.exe`
+  2. Gunakan perintah build/compiler yang sesuai di proyek ini (contoh: PyInstaller, Nuitka, atau build script yang ada).
+  3. Pastikan proses rebuild berhasil tanpa error sebelum melanjutkan ke proses Git/Commit.
 
+# Git Automation Rules
 - **Branch Management**:
   - DILARANG melakukan `git push` langsung ke branch `main` atau `master`.
   - Sebelum membuat perubahan atau menyelesaikan tugas, pastikan bekerja di feature branch tersendiri (contoh: `feature/nama-fitur` atau `fix/nama-bug`).
@@ -7,7 +14,7 @@
 
 - **Workflow Setelah Tugas Selesai**:
   1. Jalankan `git status` untuk memeriksa perubahan file.
-  2. Lakukan `git add .` untuk mengumpulkan file yang relevan.
-  3. Buat `git commit` dengan pesan standar konvensional (contoh: `feat: add svg parser` atau `fix: resolve dax alignment`).
+  2. Lakukan `git add .` untuk mengumpulkan file yang relevan (pastikan exe terbaru ikut di-stage jika di-track git).
+  3. Buat `git commit` dengan pesan standar konvensional (contoh: `feat: update label parser logic`).
   4. Lakukan `git push origin <nama-feature-branch>` ke remote repository.
-  5. Berikan kabar ke pengguna bahwa push ke feature branch telah selesai dan berikan instruksi/link jika ingin membuat **Pull Request (PR)** ke branch `main`.
+  5. Berikan kabar ke pengguna bahwa build dan push ke feature branch telah selesai.

@@ -1,4 +1,10 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **19-08-2026**: Melakukan rebuild penuh binary standalone PyInstaller untuk kedua executable:
+  - `dist/label_engine.exe` (CLI Headless Engine)
+  - `dist/LabelPreviewApp.exe` (Desktop Preview & Two-Way Inspection GUI)
+  - Menguji eksekusi binary `label_engine.exe` dengan opsi `--help` dan integrasi rendering preview format PNG berhasil tanpa error.
+
+
 - **19-08-2026**: Mengimplementasikan fitur **Interactive Two-Way Inspection Mode & Live Value Editing** antara SAP JSON Contract Tree dan Visual Thermal Canvas Preview:
   - Membuat modul `engine/binding_map.py` (`SVGInspectionEngine`) untuk mengekstrak data binding (`data-field`, `data-code`, `{{token}}`), memanggil `resvg.exe --query-all`, dan mengkalibrasi koordinat bounding box ke target raster canvas.
   - Memperbarui `gui/components/json_inspector.py` dengan tracking path hierarki, metode `select_path()`, event selection, dan inline double-click editing nilai leaf JSON.
