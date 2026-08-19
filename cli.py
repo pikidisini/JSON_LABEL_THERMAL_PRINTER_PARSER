@@ -53,8 +53,6 @@ def main() -> int:
             out_dir=out_dir,
             formats=args.format,
             dpi=args.dpi,
-            width_px=1600,
-            height_px=640,
         )
 
         print("[OK] Label processed successfully. Generated files:")

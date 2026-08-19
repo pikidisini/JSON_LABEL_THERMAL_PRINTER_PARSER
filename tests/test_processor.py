@@ -60,6 +60,31 @@ class TestProcessorFormats(unittest.TestCase):
             self.assertIn(fmt, results)
             self.assertTrue(results[fmt].is_file(), f"Expected {fmt} file to exist")
 
+    def test_dynamic_dpi_resolutions(self):
+        """Verifies that preview.png dimensions scale up dynamically with selected DPI."""
+        from PIL import Image
+
+        dpi_cases = [
+            (203.2, 1600, 640),
+            (300.0, 2362, 945),
+            (600.0, 4724, 1890),
+        ]
+        for dpi, expected_w, expected_h in dpi_cases:
+            sub_out = self.temp_out / f"dpi_{int(dpi)}"
+            sub_out.mkdir(parents=True, exist_ok=True)
+            results = process_label(
+                json_source=self.json_path,
+                template_source=self.svg_path,
+                out_dir=sub_out,
+                formats="png",
+                dpi=dpi,
+            )
+            with Image.open(results["png"]) as img:
+                w, h = img.size
+                # Tolerances of +/- 2px due to integer rounding
+                self.assertAlmostEqual(w, expected_w, delta=2)
+                self.assertAlmostEqual(h, expected_h, delta=2)
+
 
 if __name__ == "__main__":
     unittest.main()

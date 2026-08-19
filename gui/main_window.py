@@ -142,12 +142,17 @@ class MainWindow(tk.Tk):
         svg_path = results.get("svg")
         template_file = Path(self.ctrl_panel.var_template_path.get())
         current_dpi = getattr(self, "_current_render_dpi", 203.2)
+        target_w_px = int(round((200.0 / 25.4) * current_dpi))
+        target_h_px = int(round((80.0 / 25.4) * current_dpi))
+
         if svg_path and svg_path.is_file() and template_file.is_file():
             try:
                 self._current_template_content = template_file.read_text(encoding="utf-8")
                 bboxes = self.inspection_engine.build_inspection_map(
                     svg_content=self._current_template_content,
                     rendered_svg_path=svg_path,
+                    target_width_px=target_w_px,
+                    target_height_px=target_h_px,
                     dpi=current_dpi,
                 )
                 self.raster_canvas.set_bounding_boxes(bboxes)
@@ -156,7 +161,7 @@ class MainWindow(tk.Tk):
 
         png_path = results.get("png")
         if png_path and png_path.is_file():
-            self.raster_canvas.load_image(png_path)
+            self.raster_canvas.load_image(png_path, dpi=current_dpi)
         else:
             self.raster_canvas.show_error("❌ Failed to render preview image (preview.png not found)")
 

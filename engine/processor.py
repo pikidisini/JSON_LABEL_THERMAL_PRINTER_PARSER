@@ -29,8 +29,8 @@ def process_label(
     out_dir: Union[str, Path],
     formats: Union[str, List[str]] = "all",
     dpi: float = 203.2,
-    width_px: int = 1600,
-    height_px: int = 640,
+    width_px: Optional[int] = None,
+    height_px: Optional[int] = None,
     width_mm: float = 200.0,
     height_mm: float = 80.0,
 ) -> Dict[str, Path]:
@@ -42,6 +42,10 @@ def process_label(
     """
     output_dir = Path(out_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Calculate dynamic pixel resolution if not explicitly specified
+    target_w_px = int(round((width_mm / 25.4) * dpi)) if width_px is None else width_px
+    target_h_px = int(round((height_mm / 25.4) * dpi)) if height_px is None else height_px
 
     if isinstance(formats, str):
         if formats.lower() == "all":
@@ -71,13 +75,13 @@ def process_label(
     # Always include svg and png in results as they are core visual/inspection artifacts
     results["svg"] = svg_path
 
-    # Step 4: Rasterize SVG to PNG preview
+    # Step 4: Rasterize SVG to PNG preview with dynamic DPI and dimensions
     png_path = output_dir / "preview.png"
     svg_to_png(
         svg_source=complete_svg,
         output_png_path=png_path,
-        width_px=width_px,
-        height_px=height_px,
+        width_px=target_w_px,
+        height_px=target_h_px,
         dpi=dpi,
     )
     # Always include preview PNG in results (essential for UI canvas rendering)

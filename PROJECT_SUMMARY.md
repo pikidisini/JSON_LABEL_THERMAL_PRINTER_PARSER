@@ -1,4 +1,11 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **19-08-2026**: Perbaikan Bug: Dynamic DPI Resolution Scaling & Real-time Canvas Header Update:
+  - **Dynamic Dimension Calculation**: Memperbarui `engine/processor.py` (`process_label`) agar menghitung resolusi pixel kanvas secara dinamis berdasarkan formula dimensi fisik $(\text{Width}_{mm} / 25.4) \times \text{DPI}$ dan $(\text{Height}_{mm} / 25.4) \times \text{DPI}$ (203.2 DPI $\rightarrow$ 1600x640 px, 300 DPI $\rightarrow$ 2362x945 px, 600 DPI $\rightarrow$ 4724x1890 px) alih-alih hardcode 1600x640 px.
+  - **Dynamic Canvas Header & Resolution Label**: Memperbarui `gui/components/raster_canvas.py` (`RasterCanvasWidget`) dengan menambahkan `self.lbl_title`, `set_canvas_metadata()`, dan memperbarui `load_image()` sehingga judul preview `"Visual Thermal Print Preview ({dpi} DPI)"` dan label resolusi `"Resolution: {w} x {h} px ({mm_w:.1f} x {mm_h:.1f} mm @ {dpi} DPI)"` selalu sinkron secara dinamis dengan DPI aktif.
+  - **Inspection Engine Calibration**: Mengalirkan dimensi piksel dinamis `target_width_px` dan `target_height_px` dari `gui/main_window.py` ke `SVGInspectionEngine.build_inspection_map(...)` agar kalibrasi highlight overlay presisi di semua tingkat resolusi.
+  - **Pengujian Unit Test**: Menambahkan `test_dynamic_dpi_resolutions` di `tests/test_processor.py` untuk memverifikasi dimensi raster preview pada setiap resolusi DPI (48 test cases lulus 100%).
+  - **Binary Rebuild**: Melakukan rebuild penuh binary PyInstaller `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
 - **19-08-2026**: Implementasi Dynamic DPI Selector (203.2, 300, 600 DPI) & Live Pipeline Re-rendering:
   - **DPI Selector Control Panel**: Menambahkan Combobox Printer DPI pada `gui/components/control_panel.py` dengan preset `203.2 DPI (8 dpmm)`, `300 DPI (12 dpmm)`, dan `600 DPI (24 dpmm)`, beserta helper method `get_dpi()`.
   - **Thread-Safe Pipeline Integration**: Mengalirkan dynamic DPI parameter melalui `gui/worker.py` (`RenderWorker`), `gui/main_window.py` (`execute_render`, `execute_dry_run`, `_perform_live_update`), dan `SVGInspectionEngine.build_inspection_map(..., dpi=dpi)`.

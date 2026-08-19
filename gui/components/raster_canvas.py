@@ -31,6 +31,9 @@ class RasterCanvasWidget(ttk.Frame):
         self._highlighted_path: Optional[str] = None
         self._highlight_items = []
         self._drag_threshold_passed = False
+        self._dpi: float = 203.2
+        self._width_mm: float = 200.0
+        self._height_mm: float = 80.0
 
         self._user_has_zoomed = False
         self._build_ui()
@@ -48,11 +51,12 @@ class RasterCanvasWidget(ttk.Frame):
         top_row = ttk.Frame(header_frame)
         top_row.pack(fill="x", expand=True, pady=(0, 2))
 
-        ttk.Label(
+        self.lbl_title = ttk.Label(
             top_row,
-            text="Visual Thermal Print Preview (203.2 DPI)",
+            text=f"Visual Thermal Print Preview ({self._dpi:.1f} DPI)",
             font=("Segoe UI", 10, "bold"),
-        ).pack(side="left", padx=4)
+        )
+        self.lbl_title.pack(side="left", padx=4)
 
         self.lbl_dims = ttk.Label(top_row, text="Dimensions: 0 x 0 px", foreground="gray")
         self.lbl_dims.pack(side="left", padx=8)
@@ -103,6 +107,7 @@ class RasterCanvasWidget(ttk.Frame):
         self.canvas.bind("<ButtonPress-1>", self._on_pan_start)
         self.canvas.bind("<B1-Motion>", self._on_pan_move)
         self.canvas.bind("<ButtonRelease-1>", self._on_pan_end)
+        self.canvas.bind("<Motion>", self._on_mouse_move)
 
         # Direct MouseWheel Zoom (no Ctrl required)
         self.canvas.bind("<MouseWheel>", self._on_mousewheel_zoom)
@@ -110,12 +115,39 @@ class RasterCanvasWidget(ttk.Frame):
         self.canvas.bind("<Button-5>", lambda e: self._zoom_at(e, 0.9))
         self.canvas.bind("<Configure>", self._on_canvas_resize)
 
+    def set_canvas_metadata(
+        self,
+        dpi: float = 203.2,
+        width_mm: float = 200.0,
+        height_mm: float = 80.0,
+    ) -> None:
+        """Updates canvas resolution info and header title dynamically."""
+        self._dpi = dpi
+        self._width_mm = width_mm
+        self._height_mm = height_mm
+        self.lbl_title.config(text=f"Visual Thermal Print Preview ({dpi:.1f} DPI)")
+        if self._pil_image:
+            w, h = self._pil_image.size
+            mm_w = (w / dpi) * 25.4
+            mm_h = (h / dpi) * 25.4
+            self.lbl_dims.config(
+                text=f"Resolution: {w} x {h} px ({mm_w:.1f} x {mm_h:.1f} mm @ {dpi:.1f} DPI)"
+            )
 
-    def load_image(self, image_source: Union[str, Path, Image.Image]) -> None:
-        self.canvas.bind("<Motion>", self._on_mouse_move)
-
+    def load_image(
+        self,
+        image_source: Union[str, Path, Image.Image],
+        dpi: Optional[float] = None,
+        width_mm: float = 200.0,
+        height_mm: float = 80.0,
+    ) -> None:
         """Loads a raster image file or PIL Image object and auto-fits it to the window (default view)."""
         try:
+            if dpi is not None:
+                self._dpi = dpi
+            self._width_mm = width_mm
+            self._height_mm = height_mm
+
             if isinstance(image_source, (str, Path)):
                 img_path = Path(image_source)
                 if not img_path.is_file():
@@ -129,7 +161,12 @@ class RasterCanvasWidget(ttk.Frame):
                 return
 
             w, h = self._pil_image.size
-            self.lbl_dims.config(text=f"Resolution: {w} x {h} px ({w/8:.1f} x {h/8:.1f} mm @ 203.2 DPI)")
+            mm_w = (w / self._dpi) * 25.4
+            mm_h = (h / self._dpi) * 25.4
+            self.lbl_title.config(text=f"Visual Thermal Print Preview ({self._dpi:.1f} DPI)")
+            self.lbl_dims.config(
+                text=f"Resolution: {w} x {h} px ({mm_w:.1f} x {mm_h:.1f} mm @ {self._dpi:.1f} DPI)"
+            )
             self._user_has_zoomed = False
             self.canvas.update_idletasks()
             self._fit_window()
