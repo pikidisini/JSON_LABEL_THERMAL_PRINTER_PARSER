@@ -68,8 +68,8 @@ def process_label(
     svg_path = output_dir / "label.svg"
     with open(svg_path, "w", encoding="utf-8") as f:
         f.write(complete_svg)
-    if "svg" in selected_formats or "all" in selected_formats:
-        results["svg"] = svg_path
+    # Always include svg and png in results as they are core visual/inspection artifacts
+    results["svg"] = svg_path
 
     # Step 4: Rasterize SVG to PNG preview
     png_path = output_dir / "preview.png"
@@ -80,8 +80,8 @@ def process_label(
         height_px=height_px,
         dpi=dpi,
     )
-    if "png" in selected_formats:
-        results["png"] = png_path
+    # Always include preview PNG in results (essential for UI canvas rendering)
+    results["png"] = png_path
 
     # Step 5: Convert PNG to 1-Bit Monochrome & Save BMP
     image_1bit = png_to_1bit_monochrome(png_path)

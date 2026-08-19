@@ -1,4 +1,10 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **19-08-2026**: Perbaikan Bug Preview Canvas "Failed to render preview image (preview.png not found)" ketika Target Format bukan "all":
+  - Memperbarui `engine/processor.py` agar selalu mendaftarkan path `preview.png` dan `label.svg` ke dictionary `results` (`results["png"] = png_path` dan `results["svg"] = svg_path`) pada setiap proses render, tanpa memandang target export format yang dipilih (`svg`, `zpl`, `tspl`, `ipl`, `bmp`, atau `all`).
+  - Menambahkan unit test komprehensif `tests/test_processor.py` untuk memvalidasi ketersediaan `preview.png` dan artefak SVG pada berbagai opsi target format.
+  - Melakukan rebuild kedua executable (`dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`) serta memverifikasi eksekusi CLI dan GUI rendering preview berjalan mulus.
+
+
 - **19-08-2026**: Melakukan rebuild penuh binary standalone PyInstaller untuk kedua executable:
   - `dist/label_engine.exe` (CLI Headless Engine)
   - `dist/LabelPreviewApp.exe` (Desktop Preview & Two-Way Inspection GUI)
