@@ -1,4 +1,6 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **19-08-2026**: Menginisialisasi Git repository lokal, melengkapi `.gitignore`, mengonfigurasi remote origin (`https://github.com/pikidisini/JSON_LABEL_THERMAL_PRINTER_PARSER.git`), dan melakukan initial push ke branch `main`.
+
 
 ## Architecture Overview
 Sistem pencetakan label terpusat yang memisahkan **Data (SAP ERP)**, **Layout (SVG Template)**, dan **Rendering Engine (Python Native Executable)**.
