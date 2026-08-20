@@ -61,6 +61,14 @@ def main() -> int:
         default=2,
         help="Vector anti-aliasing super-sampling factor (default: 2)",
     )
+    parser.add_argument(
+        "--filter",
+        required=False,
+        type=str,
+        default="BOX",
+        choices=["BOX", "LANCZOS", "NEAREST", "BILINEAR", "BICUBIC", "HAMMING"],
+        help="Downsampling resampling filter for super-sampling (default: BOX)",
+    )
 
     args = parser.parse_args()
 
@@ -78,6 +86,7 @@ def main() -> int:
             rotation=args.rotation,
             binarization_threshold=args.threshold,
             super_sample_factor=args.super_sample,
+            downsampling_filter=args.filter,
         )
 
         print("[OK] Label processed successfully. Generated files:")

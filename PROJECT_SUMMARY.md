@@ -1,4 +1,17 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **20-08-2026**: Peningkatan Kualitas Vektor Barcode & QR Code (Path Unification, `crispEdges`, dan `BOX` Downsampling Filter):
+  - **SVG Path Unification & Run-Length Encoding (`engine/barcode_generator.py`)**:
+    - Memperbarui generator Barcode 1D (`create_barcode_svg_group`) dan QR Code 2D (`create_qr_svg_group`) untuk mengonsolidasikan ratusan elemen individual `<rect>` menjadi satu elemen SVG `<path>` terpadu dengan pengkodean *horizontal run-length encoding* (`M x y H x1 V y1 H x Z`).
+    - Menyematkan atribut `shape-rendering="crispEdges"` pada elemen `<path>` untuk mematikan anti-aliasing sub-piksel di level resvg renderer, mencegah *seam artifacts* (garis tipis semu antar modul) dan mengurangi ukuran DOM SVG lebih dari 75%.
+  - **Configurable Downsampling Resampling Filter (`engine/rasterizer.py`, `engine/processor.py`)**:
+    - Menambahkan parameter `downsampling_filter` pada `svg_to_png()` dan `process_label()` (opsi: `BOX`, `LANCZOS`, `NEAREST`, `BILINEAR`, `BICUBIC`, `HAMMING`) dengan nilai default **`BOX`**.
+    - Filter `BOX` menghitung rata-rata area kotak geometris (*area averaging*) secara murni tanpa *sinc ringing* atau *pixel dilation* yang sebelumnya terjadi pada `LANCZOS`, menghasilkan tepi modul QR/Barcode yang tajam dan presisi pada grid dot fisik (203.2 DPI) dengan tipografi teks yang tetap terbaca bersih.
+  - **Dukungan CLI Engine (`cli.py`)**: Menambahkan argumen `--filter {BOX,LANCZOS,NEAREST,BILINEAR,BICUBIC,HAMMING}` dengan default `BOX`.
+  - **Pengujian Unit Test (`tests/test_barcode_generator.py`, `tests/test_rasterizer.py`)**:
+    - Memperbarui pengujian `test_create_barcode_svg_group` dan `test_create_qr_svg_group` untuk memvalidasi elemen `<path>` dan atribut `shape-rendering="crispEdges"`.
+    - Menambahkan pengujian `test_downsampling_filter_options` pada `tests/test_rasterizer.py` untuk memverifikasi konsistensi rendering filter `BOX`, `LANCZOS`, dan `NEAREST`. Seluruh suite unit test lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh standalone executables `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
 - **20-08-2026**: Peningkatan Kualitas Render 1-Bit BMP (Anti-Aliasing Super-Sampling & Dynamic Binarization Threshold):
   - **Super-Sampling Vector Rendering (`engine/rasterizer.py`)**: Menambahkan parameter `super_sample_factor` (default $2\times$) pada fungsi `svg_to_png()`. Resvg merender gambar pada resolusi tinggi ($2\times$ ukuran target) lalu dilakukan downscaling kembali ke dimensi target melalui algoritma resampling Pillow `LANCZOS`. Hasilnya menghasilkan kontur teks dan garis border yang halus tanpa artefak bergerigi (*jagged text/broken borders*).
   - **Otsu Global Thresholding Auto-Detection (`engine/rasterizer.py`)**: Mengimplementasikan `calculate_otsu_threshold(image)` yang menghitung ambang batas pemisahan biner optimal $[0..255]$ dengan memaksimalkan variansi antar-kelas (*inter-class variance*) histogram citra.

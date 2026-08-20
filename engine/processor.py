@@ -41,6 +41,7 @@ def process_label(
     rotation: int = 0,
     binarization_threshold: int = 128,
     super_sample_factor: int = 2,
+    downsampling_filter: str = "BOX",
     width_px: Optional[int] = None,
     height_px: Optional[int] = None,
     width_mm: float = 200.0,
@@ -58,6 +59,7 @@ def process_label(
         rotation: Clockwise rotation angle (0, 90, 180, 270 degrees).
         binarization_threshold: Threshold [0..255] for monochrome 1-bit conversion (default: 128).
         super_sample_factor: Multiplier for vector anti-aliasing super-sampling before downscaling (default: 2).
+        downsampling_filter: Resampling filter for super-sample downscaling (default: 'BOX', or 'LANCZOS', 'NEAREST').
         width_px: Explicit override width in dots (optional).
         height_px: Explicit override height in dots (optional).
         width_mm: Physical label width in millimeters (default: 200.0).
@@ -112,6 +114,7 @@ def process_label(
         height_px=target_h_px,
         dpi=dpi,
         super_sample_factor=super_sample_factor,
+        downsampling_filter=downsampling_filter,
     )
 
     # Step 4a: Apply image rotation before 1-bit binarization & printer encoding if specified

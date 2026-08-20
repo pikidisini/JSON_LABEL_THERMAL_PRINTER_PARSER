@@ -113,6 +113,31 @@ class TestRasterizer(unittest.TestCase):
         extrema = img_1bit.getextrema()
         self.assertEqual(extrema, (0, 255))
 
+    def test_downsampling_filter_options(self):
+        """Tests that different downsampling filters (BOX, LANCZOS, NEAREST) render properly."""
+        contract_data = load_json_contract(self.sample_json_path)
+        svg_template = load_svg_template(self.sample_template_path)
+        injected_text = inject_data(svg_template, contract_data)
+        complete_svg = inject_barcodes_and_qr(injected_text, contract_data)
+
+        for filter_name in ["BOX", "LANCZOS", "NEAREST"]:
+            png_path = self.out_dir / f"preview_{filter_name}.png"
+            svg_to_png(
+                svg_source=complete_svg,
+                output_png_path=png_path,
+                width_px=1600,
+                height_px=640,
+                dpi=203.2,
+                super_sample_factor=2,
+                downsampling_filter=filter_name,
+            )
+            self.assertTrue(png_path.is_file())
+            with Image.open(png_path) as img:
+                self.assertEqual(img.size, (1600, 640))
+            img_1bit = png_to_1bit_monochrome(png_path)
+            self.assertEqual(img_1bit.mode, "1")
+            self.assertEqual(img_1bit.getextrema(), (0, 255))
+
 
 if __name__ == "__main__":
     unittest.main()
