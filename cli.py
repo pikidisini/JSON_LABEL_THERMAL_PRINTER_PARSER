@@ -39,6 +39,14 @@ def main() -> int:
         default=203.2,
         help="Thermal printer resolution DPI (default: 203.2 = 8 dots/mm)",
     )
+    parser.add_argument(
+        "--rotation",
+        required=False,
+        type=int,
+        default=0,
+        choices=[0, 90, 180, 270],
+        help="Image rotation angle in degrees (default: 0 = normal)",
+    )
 
     args = parser.parse_args()
 
@@ -53,6 +61,7 @@ def main() -> int:
             out_dir=out_dir,
             formats=args.format,
             dpi=args.dpi,
+            rotation=args.rotation,
         )
 
         print("[OK] Label processed successfully. Generated files:")

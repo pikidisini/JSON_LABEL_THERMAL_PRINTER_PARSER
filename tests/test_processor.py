@@ -128,6 +128,50 @@ class TestProcessorFormats(unittest.TestCase):
             self.assertTrue(results[fmt].is_file(), f"Expected {fmt} file to exist for 600 DPI")
             self.assertTrue(results[fmt].stat().st_size > 0)
 
+    def test_rotations_dimension_swapping(self):
+        """Verifies that 90° and 270° rotations swap width and height while 0° and 180° keep original aspect ratio."""
+        from PIL import Image
+
+        rotation_cases = [
+            (0, 1600, 640),
+            (90, 640, 1600),
+            (180, 1600, 640),
+            (270, 640, 1600),
+        ]
+        for rot, exp_w, exp_h in rotation_cases:
+            sub_out = self.temp_out / f"rot_{rot}"
+            sub_out.mkdir(parents=True, exist_ok=True)
+            results = process_label(
+                json_source=self.json_path,
+                template_source=self.svg_path,
+                out_dir=sub_out,
+                formats="png",
+                dpi=203.2,
+                rotation=rot,
+            )
+            with Image.open(results["png"]) as img:
+                w, h = img.size
+                self.assertEqual(w, exp_w)
+                self.assertEqual(h, exp_h)
+
+    def test_rotations_all_formats_including_encoders(self):
+        """Verifies that all formats (PDF, ZPL, TSPL, IPL, BMP) encode cleanly under 90, 180, and 270 degrees."""
+        for rot in [90, 180, 270]:
+            sub_out = self.temp_out / f"rot_{rot}_all"
+            sub_out.mkdir(parents=True, exist_ok=True)
+            results = process_label(
+                json_source=self.json_path,
+                template_source=self.svg_path,
+                out_dir=sub_out,
+                formats="all",
+                dpi=203.2,
+                rotation=rot,
+            )
+            for fmt in ["svg", "png", "bmp", "pdf", "zpl", "tspl", "ipl"]:
+                self.assertIn(fmt, results)
+                self.assertTrue(results[fmt].is_file(), f"Expected {fmt} file to exist for rotation {rot}°")
+                self.assertTrue(results[fmt].stat().st_size > 0)
+
 
 if __name__ == "__main__":
     unittest.main()

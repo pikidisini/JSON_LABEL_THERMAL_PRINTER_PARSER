@@ -175,6 +175,57 @@ class TestCoordinateAlignment:
             # Fallback on invalid format
             panel.var_dpi.set("invalid")
             assert panel.get_dpi() == 203.2
+
+            # Rotation tests
+            panel.var_rotation.set("0°")
+            assert panel.get_rotation() == 0
+
+            panel.var_rotation.set("90°")
+            assert panel.get_rotation() == 90
+
+            panel.var_rotation.set("180°")
+            assert panel.get_rotation() == 180
+
+            panel.var_rotation.set("270°")
+            assert panel.get_rotation() == 270
+
+            panel.var_rotation.set("invalid")
+            assert panel.get_rotation() == 0
         finally:
             root.destroy()
+
+    def test_transform_bbox_by_rotation(self):
+        """Verifies exact bounding box coordinate transformation across all rotation angles."""
+        engine = SVGInspectionEngine()
+        # Original canvas: 1600 x 640
+        # Original box: x=100, y=50, w=200, h=40
+        orig_box = BoundingBox(x=100.0, y=50.0, width=200.0, height=40.0, element_id="t1", json_path="fields.brand")
+
+        # 0° -> unchanged
+        box0 = engine.transform_bbox_by_rotation(orig_box, 0, 1600, 640)
+        assert box0.x == 100.0
+        assert box0.y == 50.0
+        assert box0.width == 200.0
+        assert box0.height == 40.0
+
+        # 90° CW -> (H - y - h, x, h, w) = (640 - 50 - 40, 100, 40, 200) = (550, 100, 40, 200)
+        box90 = engine.transform_bbox_by_rotation(orig_box, 90, 1600, 640)
+        assert box90.x == 550.0
+        assert box90.y == 100.0
+        assert box90.width == 40.0
+        assert box90.height == 200.0
+
+        # 180° CW -> (W - x - w, H - y - h, w, h) = (1600 - 100 - 200, 640 - 50 - 40, 200, 40) = (1300, 550, 200, 40)
+        box180 = engine.transform_bbox_by_rotation(orig_box, 180, 1600, 640)
+        assert box180.x == 1300.0
+        assert box180.y == 550.0
+        assert box180.width == 200.0
+        assert box180.height == 40.0
+
+        # 270° CW -> (y, W - x - w, h, w) = (50, 1600 - 100 - 200, 40, 200) = (50, 1300, 40, 200)
+        box270 = engine.transform_bbox_by_rotation(orig_box, 270, 1600, 640)
+        assert box270.x == 50.0
+        assert box270.y == 1300.0
+        assert box270.width == 40.0
+        assert box270.height == 200.0
 

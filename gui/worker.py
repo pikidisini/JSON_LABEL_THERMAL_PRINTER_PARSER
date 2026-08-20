@@ -31,6 +31,7 @@ class RenderWorker:
         on_success: Callable[[Path, Dict[str, Path]], None],
         on_error: Callable[[str], None],
         dpi: float = 203.2,
+        rotation: int = 0,
     ):
         self.parent = parent
         self.json_path = json_path
@@ -40,6 +41,7 @@ class RenderWorker:
         self.on_success = on_success
         self.on_error = on_error
         self.dpi = dpi
+        self.rotation = rotation
         self._thread: Optional[threading.Thread] = None
 
     def start(self) -> None:
@@ -56,6 +58,7 @@ class RenderWorker:
                 out_dir=self.out_dir,
                 formats=self.fmt,
                 dpi=self.dpi,
+                rotation=self.rotation,
             )
             # Dispatch success callback on UI thread
             self.parent.after(0, self.on_success, self.json_path, results)

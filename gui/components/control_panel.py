@@ -55,6 +55,13 @@ class ControlPanelWidget(ttk.Frame):
         "600 DPI (24 dpmm)",
     ]
 
+    ROTATION_PRESETS = [
+        "0°",
+        "90°",
+        "180°",
+        "270°",
+    ]
+
     def __init__(
         self,
         parent: tk.Widget,
@@ -63,6 +70,7 @@ class ControlPanelWidget(ttk.Frame):
         on_print_clicked: Optional[Callable[[], None]] = None,
         on_export_clicked: Optional[Callable[[], None]] = None,
         on_dpi_changed: Optional[Callable[[float], None]] = None,
+        on_rotation_changed: Optional[Callable[[int], None]] = None,
         **kwargs,
     ):
         super().__init__(parent, **kwargs)
@@ -71,11 +79,13 @@ class ControlPanelWidget(ttk.Frame):
         self.on_print_clicked = on_print_clicked
         self.on_export_clicked = on_export_clicked
         self.on_dpi_changed = on_dpi_changed
+        self.on_rotation_changed = on_rotation_changed
 
         self.var_json_path = tk.StringVar()
         self.var_template_path = tk.StringVar()
         self.var_format = tk.StringVar(value="all")
         self.var_dpi = tk.StringVar(value=self.DPI_PRESETS[0])
+        self.var_rotation = tk.StringVar(value=self.ROTATION_PRESETS[0])
 
         self._build_ui()
 
@@ -88,6 +98,15 @@ class ControlPanelWidget(ttk.Frame):
             return float(dpi_str)
         except (ValueError, IndexError):
             return 203.2
+
+    def get_rotation(self) -> int:
+        """Parses and returns the currently selected rotation angle as an integer (0, 90, 180, 270)."""
+        val = self.var_rotation.get().strip()
+        try:
+            rot_str = val.replace("°", "").strip()
+            return int(rot_str) if rot_str else 0
+        except (ValueError, IndexError):
+            return 0
 
     def _build_ui(self):
         # Frame 1: File Pickers
@@ -106,8 +125,8 @@ class ControlPanelWidget(ttk.Frame):
 
         files_frame.columnconfigure(1, weight=1)
 
-        # Frame 2: Format & DPI Settings
-        opts_frame = ttk.LabelFrame(self, text="Output & DPI Settings", padding=6)
+        # Frame 2: Format, DPI & Rotation Settings
+        opts_frame = ttk.LabelFrame(self, text="Output, DPI & Rotation", padding=6)
         opts_frame.pack(side="left", fill="y", padx=4, pady=2)
 
         # Format Combobox
@@ -137,6 +156,21 @@ class ControlPanelWidget(ttk.Frame):
         cb_dpi.pack(side="top", pady=2, fill="x")
         cb_dpi.bind("<<ComboboxSelected>>", self._handle_dpi_selected)
         _ToolTip(cb_dpi, "Select thermal printhead resolution (203.2 / 300 / 600 DPI)")
+
+        # Rotation Combobox
+        rot_container = ttk.Frame(opts_frame)
+        rot_container.pack(side="left", padx=3, pady=0)
+        ttk.Label(rot_container, text="Rotation:").pack(side="top", anchor="w")
+        cb_rot = ttk.Combobox(
+            rot_container,
+            textvariable=self.var_rotation,
+            values=self.ROTATION_PRESETS,
+            state="readonly",
+            width=8,
+        )
+        cb_rot.pack(side="top", pady=2, fill="x")
+        cb_rot.bind("<<ComboboxSelected>>", self._handle_rotation_selected)
+        _ToolTip(cb_rot, "Rotate image (0°, 90°, 180°, 270° CW) before 1-bit & printer encoding")
 
         # Frame 3: Action Buttons
         actions_frame = ttk.LabelFrame(self, text="Engine Actions", padding=6)
@@ -208,6 +242,10 @@ class ControlPanelWidget(ttk.Frame):
     def _handle_dpi_selected(self, _event=None):
         if self.on_dpi_changed:
             self.on_dpi_changed(self.get_dpi())
+
+    def _handle_rotation_selected(self, _event=None):
+        if self.on_rotation_changed:
+            self.on_rotation_changed(self.get_rotation())
 
     def _browse_json(self):
         filename = filedialog.askopenfilename(

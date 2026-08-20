@@ -129,6 +129,41 @@ def svg_to_png(
                 pass
 
 
+def rotate_image_cw(
+    image: Union[str, Path, Image.Image],
+    angle: int = 0,
+) -> Image.Image:
+    """
+    Rotates an image clockwise by the specified angle (0, 90, 180, 270 degrees).
+    Uses Image.rotate(-angle, expand=True) to ensure target width and height swap
+    correctly when rotating 90° or 270° (e.g. 1600x640 -> 640x1600) without clipping.
+
+    Args:
+        image: Source PIL Image or Path/str to an image file.
+        angle: Clockwise rotation angle in degrees (0, 90, 180, 270).
+
+    Returns:
+        Rotated PIL Image object.
+    """
+    if isinstance(image, (str, Path)):
+        img = Image.open(str(image))
+    else:
+        img = image
+
+    normalized_angle = angle % 360
+    if normalized_angle == 0:
+        return img
+
+    # Pillow rotates counter-clockwise by default, so clockwise angle theta is -theta
+    # fillcolor ensures any edge padding (if any) is clean white
+    fill_color = 255 if img.mode in ("1", "L") else (255, 255, 255)
+    if img.mode == "RGBA":
+        fill_color = (255, 255, 255, 255)
+
+    rotated = img.rotate(-normalized_angle, expand=True, fillcolor=fill_color)
+    return rotated
+
+
 def png_to_1bit_monochrome(
     png_source: Union[str, Path, Image.Image],
     threshold: int = 128,

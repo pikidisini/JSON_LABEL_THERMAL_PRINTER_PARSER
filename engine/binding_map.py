@@ -268,6 +268,55 @@ class SVGInspectionEngine:
 
         return scaled_boxes
 
+    def transform_bbox_by_rotation(
+        self,
+        bbox: BoundingBox,
+        rotation_angle: int,
+        orig_width_px: int,
+        orig_height_px: int,
+    ) -> BoundingBox:
+        """
+        Transforms a BoundingBox to match coordinates in rotated image space.
+
+        Transformations (Clockwise):
+        - 0°: No change
+        - 90° CW:  (x, y, w, h) -> (orig_height_px - y - h, x, h, w)
+        - 180° CW: (x, y, w, h) -> (orig_width_px - x - w, orig_height_px - y - h, w, h)
+        - 270° CW: (x, y, w, h) -> (y, orig_width_px - x - w, h, w)
+        """
+        rot = rotation_angle % 360
+        if rot == 0:
+            return bbox
+
+        x, y, w, h = bbox.x, bbox.y, bbox.width, bbox.height
+
+        if rot == 90:
+            new_x = round(orig_height_px - y - h, 2)
+            new_y = round(x, 2)
+            new_w = round(h, 2)
+            new_h = round(w, 2)
+        elif rot == 180:
+            new_x = round(orig_width_px - x - w, 2)
+            new_y = round(orig_height_px - y - h, 2)
+            new_w = round(w, 2)
+            new_h = round(h, 2)
+        elif rot == 270:
+            new_x = round(y, 2)
+            new_y = round(orig_width_px - x - w, 2)
+            new_w = round(h, 2)
+            new_h = round(w, 2)
+        else:
+            return bbox
+
+        return BoundingBox(
+            x=new_x,
+            y=new_y,
+            width=new_w,
+            height=new_h,
+            element_id=bbox.element_id,
+            json_path=bbox.json_path,
+        )
+
     def build_inspection_map(
         self,
         svg_content: str,
@@ -275,9 +324,11 @@ class SVGInspectionEngine:
         target_width_px: int = 1600,
         target_height_px: int = 640,
         dpi: float = 203.2,
+        rotation: int = 0,
     ) -> List[BoundingBox]:
         """
         Builds a complete list of BoundingBox objects mapping JSON paths to pixel coordinates.
+        Supports automatic coordinate transformation for rotated images.
         """
         key_to_elem_ids = self.extract_element_bindings(svg_content)
         elem_boxes = self.query_all_element_boxes(
@@ -294,15 +345,21 @@ class SVGInspectionEngine:
                     bx, by, bw, bh = elem_boxes[elem_id]
                     if bw >= target_width_px * 0.95 and bh >= target_height_px * 0.95:
                         continue
-                    all_boxes.append(
-                        BoundingBox(
-                            x=bx,
-                            y=by,
-                            width=bw,
-                            height=bh,
-                            element_id=elem_id,
-                            json_path=json_path,
-                        )
+                    box = BoundingBox(
+                        x=bx,
+                        y=by,
+                        width=bw,
+                        height=bh,
+                        element_id=elem_id,
+                        json_path=json_path,
                     )
+                    if rotation % 360 != 0:
+                        box = self.transform_bbox_by_rotation(
+                            box,
+                            rotation_angle=rotation,
+                            orig_width_px=target_width_px,
+                            orig_height_px=target_height_px,
+                        )
+                    all_boxes.append(box)
 
         return all_boxes

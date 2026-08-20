@@ -18,9 +18,10 @@ from typing import Any, Dict, List, Optional, Union
 
 from .renderer import load_json_contract, load_svg_template, inject_data, validate_no_orphan_tokens
 from .barcode_generator import inject_barcodes_and_qr
-from .rasterizer import svg_to_png, png_to_1bit_monochrome, save_1bit_bmp
+from .rasterizer import svg_to_png, png_to_1bit_monochrome, save_1bit_bmp, rotate_image_cw
 from .bit_packer import get_raw_bitmap_data
 from .printer_encoders import encode_zpl, encode_tspl, encode_ipl, encode_pdf
+from PIL import Image
 
 
 def align_to_byte_boundary(pixels: int, alignment: int = 8) -> int:
@@ -37,6 +38,7 @@ def process_label(
     out_dir: Union[str, Path],
     formats: Union[str, List[str]] = "all",
     dpi: float = 203.2,
+    rotation: int = 0,
     width_px: Optional[int] = None,
     height_px: Optional[int] = None,
     width_mm: float = 200.0,
@@ -45,7 +47,7 @@ def process_label(
     """
     Executes the full end-to-end rendering and encoding pipeline.
     
-    Returns a dictionary mapping format names ('svg', 'png', 'bmp', 'zpl', 'tspl', 'ipl')
+    Returns a dictionary mapping format names ('svg', 'png', 'bmp', 'pdf', 'zpl', 'tspl', 'ipl')
     to their generated file paths.
     """
     output_dir = Path(out_dir)
@@ -93,6 +95,28 @@ def process_label(
         height_px=target_h_px,
         dpi=dpi,
     )
+
+    # Step 4a: Apply image rotation before 1-bit binarization & printer encoding if specified
+    active_rotation = rotation % 360
+    effective_width_mm = width_mm
+    effective_height_mm = height_mm
+
+    if active_rotation != 0:
+        rotated_img = rotate_image_cw(png_path, angle=active_rotation)
+        new_w, new_h = rotated_img.size
+        aligned_new_w = align_to_byte_boundary(new_w, alignment=8)
+        if aligned_new_w != new_w:
+            mode = "RGBA" if rotated_img.mode == "RGBA" else "RGB"
+            bg_color = (255, 255, 255, 255) if mode == "RGBA" else (255, 255, 255)
+            aligned_img = Image.new(mode, (aligned_new_w, new_h), bg_color)
+            aligned_img.paste(rotated_img, (0, 0))
+            rotated_img = aligned_img
+        rotated_img.save(png_path, format="PNG")
+
+        # Swap physical dimensions for TSPL and PDF metadata when rotated 90° or 270°
+        if active_rotation in (90, 270):
+            effective_width_mm, effective_height_mm = height_mm, width_mm
+
     # Always include preview PNG in results (essential for UI canvas rendering)
     results["png"] = png_path
 
@@ -110,8 +134,8 @@ def process_label(
             image_source=image_1bit,
             output_pdf_path=pdf_path,
             dpi=dpi,
-            width_mm=width_mm,
-            height_mm=height_mm,
+            width_mm=effective_width_mm,
+            height_mm=effective_height_mm,
         )
         results["pdf"] = pdf_path
 
@@ -131,8 +155,8 @@ def process_label(
             raw_bytes,
             width_px=w,
             height_px=h,
-            width_mm=width_mm,
-            height_mm=height_mm,
+            width_mm=effective_width_mm,
+            height_mm=effective_height_mm,
         )
         tspl_path = output_dir / "label.tspl"
         with open(tspl_path, "wb") as f:
