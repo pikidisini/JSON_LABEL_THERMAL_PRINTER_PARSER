@@ -2,7 +2,7 @@
 CLI Entrypoint for Centralized Factory Label Printing Engine.
 
 Usage:
-    python cli.py --json <path_to_json> --template <path_to_svg> [--out-dir <path>] [--format all|zpl|tspl|ipl|png|bmp] [--dpi 203.2]
+    python cli.py --json <path_to_json> --template <path_to_svg> [--out-dir <path>] [--format all|zpl|tspl|ipl|pdf|png|bmp|svg] [--dpi 203.2]
 """
 
 import argparse
@@ -29,7 +29,7 @@ def main() -> int:
         "--format",
         required=False,
         default="all",
-        choices=["all", "zpl", "tspl", "ipl", "png", "bmp", "svg"],
+        choices=["all", "zpl", "tspl", "ipl", "pdf", "png", "bmp", "svg"],
         help="Output format to generate (default: all)",
     )
     parser.add_argument(

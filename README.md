@@ -131,8 +131,11 @@ pip install -r requirements.txt
 Script `cli.py` digunakan untuk eksekusi headless (otomatisasi via SAP Background Job, Task Scheduler, atau integrasi backend):
 
 ```bash
-# Render ke semua format (SVG, PNG, BMP, ZPL, TSPL, IPL)
+# Render ke semua format (SVG, PNG, BMP, PDF, ZPL, TSPL, IPL)
 python cli.py --json data_samples/sample_roll.json --template assets/templates/label_roll_80x200.svg --out-dir out
+
+# Render khusus format PDF dokumen terkompresi
+python cli.py --json data_samples/sample_roll.json --template assets/templates/label_roll_80x200.svg --format pdf
 
 # Render khusus format ZPL untuk printer Zebra
 python cli.py --json data_samples/sample_roll.json --template assets/templates/label_roll_80x200.svg --format zpl
@@ -150,7 +153,7 @@ python cli.py --json data_samples/sample_roll.json --template assets/templates/l
 | `--json` | Path | Ya | Lokasi berkas input JSON contract |
 | `--template` | Path | Ya | Lokasi berkas master SVG template |
 | `--out-dir` | Path | Tidak | Direktori output hasil render (Default: `out/`) |
-| `--format` | String | Tidak | Pilihan: `all`, `zpl`, `tspl`, `ipl`, `png`, `bmp`, `svg` (Default: `all`) |
+| `--format` | String | Tidak | Pilihan: `all`, `zpl`, `tspl`, `ipl`, `pdf`, `png`, `bmp`, `svg` (Default: `all`) |
 | `--dpi` | Float | Tidak | Resolusi printhead thermal (Default: `203.2`) |
 
 ---
@@ -170,13 +173,16 @@ python -m gui.app
 
 ---
 
-## 🖨️ Dukungan Bahasa Printer Thermal
+## 🖨️ Dukungan Bahasa Printer & Format Ekspor
 
-| Bahasa Printer | Produsen | Format Perintah | Modus Data |
+| Bahasa / Format | Produsen / Tipe | Format Perintah / Dokumen | Modus Data / Kompresi |
 |---|---|---|---|
 | **ZPL II** | Zebra Technologies | `^XA ... ^GFA,...^FS ... ^XZ` | ASCII Hexadecimal |
 | **TSPL2** | TSC / POSTEK | `SIZE ... BITMAP X,Y,W,H,0,<raw_bytes> ... PRINT 1` | Binary 1-Bit Stream |
 | **IPL** | Intermec / Honeywell | `<STX>L<ETX> ... <STX>G1;...;<data><ETX> ... <STX>Q1;1<ETX>` | Graphic Field Layout |
+| **PDF** | Portable Document Format | Single-page standard vector wrapper | CCITT Group 4 / Flate Lossless (< 100 KB) |
+| **BMP** | Windows Bitmap | 1-bit monochrome uncompressed | Byte-aligned row packing |
+| **PNG / SVG** | Preview & Vector | Standard visual raster & SVG DOM | Full dynamic resolution preview |
 
 ---
 

@@ -48,15 +48,40 @@ class TestProcessorFormats(unittest.TestCase):
         self.assertTrue(results["png"].is_file())
         self.assertTrue(results["zpl"].is_file())
 
+    def test_format_pdf_generation_and_compression(self):
+        """When format='pdf', verifies valid PDF file is generated and compressed (< 100 KB at 600 DPI)."""
+        sub_out = self.temp_out / "pdf_test"
+        sub_out.mkdir(parents=True, exist_ok=True)
+        results = process_label(
+            json_source=self.json_path,
+            template_source=self.svg_path,
+            out_dir=sub_out,
+            formats="pdf",
+            dpi=600.0,
+        )
+        self.assertIn("pdf", results)
+        self.assertIn("png", results)
+        self.assertTrue(results["pdf"].is_file())
+        self.assertEqual(results["pdf"].name, "label.pdf")
+
+        # Verify header is valid PDF
+        with open(results["pdf"], "rb") as f:
+            header = f.read(20)
+            self.assertTrue(header.startswith(b"%PDF"))
+
+        # Verify file size is significantly compressed (< 100 KB at 600 DPI)
+        pdf_size_kb = results["pdf"].stat().st_size / 1024
+        self.assertLess(pdf_size_kb, 100.0, f"PDF file size {pdf_size_kb:.2f} KB exceeds 100 KB limit")
+
     def test_format_all(self):
-        """When format='all', all formats (svg, png, bmp, zpl, tspl, ipl) should be generated."""
+        """When format='all', all formats (svg, png, bmp, pdf, zpl, tspl, ipl) should be generated."""
         results = process_label(
             json_source=self.json_path,
             template_source=self.svg_path,
             out_dir=self.temp_out,
             formats="all",
         )
-        for fmt in ["svg", "png", "bmp", "zpl", "tspl", "ipl"]:
+        for fmt in ["svg", "png", "bmp", "pdf", "zpl", "tspl", "ipl"]:
             self.assertIn(fmt, results)
             self.assertTrue(results[fmt].is_file(), f"Expected {fmt} file to exist")
 
@@ -88,7 +113,7 @@ class TestProcessorFormats(unittest.TestCase):
                 self.assertAlmostEqual(h, expected_h, delta=2)
 
     def test_600_dpi_all_formats_including_ipl(self):
-        """Verifies that 600 DPI with formats='all' (including IPL) renders and encodes without byte-alignment error."""
+        """Verifies that 600 DPI with formats='all' (including IPL & PDF) renders and encodes without byte-alignment error."""
         sub_out = self.temp_out / "dpi_600_all"
         sub_out.mkdir(parents=True, exist_ok=True)
         results = process_label(
@@ -98,7 +123,7 @@ class TestProcessorFormats(unittest.TestCase):
             formats="all",
             dpi=600.0,
         )
-        for fmt in ["svg", "png", "bmp", "zpl", "tspl", "ipl"]:
+        for fmt in ["svg", "png", "bmp", "pdf", "zpl", "tspl", "ipl"]:
             self.assertIn(fmt, results)
             self.assertTrue(results[fmt].is_file(), f"Expected {fmt} file to exist for 600 DPI")
             self.assertTrue(results[fmt].stat().st_size > 0)

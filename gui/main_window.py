@@ -253,6 +253,7 @@ class MainWindow(tk.Tk):
 
         # Format map for specific extensions
         format_filetypes = {
+            "pdf": ("PDF Document", "*.pdf"),
             "png": ("PNG Image", "*.png"),
             "bmp": ("1-Bit Monochrome Bitmap", "*.bmp"),
             "svg": ("SVG Scalable Vector", "*.svg"),

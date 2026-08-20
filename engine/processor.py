@@ -20,7 +20,7 @@ from .renderer import load_json_contract, load_svg_template, inject_data, valida
 from .barcode_generator import inject_barcodes_and_qr
 from .rasterizer import svg_to_png, png_to_1bit_monochrome, save_1bit_bmp
 from .bit_packer import get_raw_bitmap_data
-from .printer_encoders import encode_zpl, encode_tspl, encode_ipl
+from .printer_encoders import encode_zpl, encode_tspl, encode_ipl, encode_pdf
 
 
 def align_to_byte_boundary(pixels: int, alignment: int = 8) -> int:
@@ -58,7 +58,7 @@ def process_label(
 
     if isinstance(formats, str):
         if formats.lower() == "all":
-            selected_formats = ["svg", "png", "bmp", "zpl", "tspl", "ipl"]
+            selected_formats = ["svg", "png", "bmp", "pdf", "zpl", "tspl", "ipl"]
         else:
             selected_formats = [f.strip().lower() for f in formats.split(",")]
     else:
@@ -102,6 +102,18 @@ def process_label(
     save_1bit_bmp(image_1bit, bmp_path)
     if "bmp" in selected_formats:
         results["bmp"] = bmp_path
+
+    # Step 5b: Generate PDF if requested
+    if "pdf" in selected_formats or "all" in selected_formats:
+        pdf_path = output_dir / "label.pdf"
+        encode_pdf(
+            image_source=image_1bit,
+            output_pdf_path=pdf_path,
+            dpi=dpi,
+            width_mm=width_mm,
+            height_mm=height_mm,
+        )
+        results["pdf"] = pdf_path
 
     # Step 6: Bit packing
     raw_bytes, w, h, bytes_per_row = get_raw_bitmap_data(image_1bit)

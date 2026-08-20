@@ -5,7 +5,7 @@ Unit tests for Native Printer Encoders (ZPL, TSPL, IPL).
 from pathlib import Path
 import unittest
 
-from engine.printer_encoders import encode_zpl, encode_tspl, encode_ipl
+from engine.printer_encoders import encode_zpl, encode_tspl, encode_ipl, encode_pdf
 from engine.processor import process_label
 
 
@@ -71,6 +71,17 @@ class TestPrinterEncoders(unittest.TestCase):
         with self.assertRaises(ValueError):
             encode_ipl(dummy_bytes, width_px=16, height_px=2)  # expects 4 bytes, got 2
 
+    def test_pdf_encoder_format(self):
+        from PIL import Image
+        img = Image.new("1", (1600, 640), 255)
+        pdf_out = self.out_dir / "test_encode.pdf"
+        result_path = encode_pdf(img, pdf_out, dpi=203.2, width_mm=200.0, height_mm=80.0)
+        self.assertTrue(result_path.is_file())
+        self.assertTrue(result_path.stat().st_size > 0)
+        with open(result_path, "rb") as f:
+            header = f.read(20)
+            self.assertTrue(header.startswith(b"%PDF"))
+
     def test_full_pipeline_process_label(self):
         results = process_label(
             json_source=self.sample_json_path,
@@ -80,7 +91,7 @@ class TestPrinterEncoders(unittest.TestCase):
             dpi=203.2,
         )
 
-        expected_keys = ["svg", "png", "bmp", "zpl", "tspl", "ipl"]
+        expected_keys = ["svg", "png", "bmp", "pdf", "zpl", "tspl", "ipl"]
         for key in expected_keys:
             self.assertIn(key, results)
             self.assertTrue(results[key].is_file())

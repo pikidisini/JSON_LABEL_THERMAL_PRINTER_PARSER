@@ -47,11 +47,16 @@ class TestGUIComponents(unittest.TestCase):
 
 
     def test_raster_canvas_load_image(self):
-        if self.sample_png.is_file():
-            canvas_widget = RasterCanvasWidget(self.root)
-            canvas_widget.load_image(self.sample_png)
-            self.assertIsNotNone(canvas_widget._pil_image)
-            self.assertEqual(canvas_widget._pil_image.size, (1600, 640))
+        from PIL import Image
+        temp_png = self.project_root / "out" / "test_gui_canvas_preview.png"
+        temp_png.parent.mkdir(parents=True, exist_ok=True)
+        img = Image.new("RGB", (1600, 640), (255, 255, 255))
+        img.save(temp_png)
+
+        canvas_widget = RasterCanvasWidget(self.root)
+        canvas_widget.load_image(temp_png)
+        self.assertIsNotNone(canvas_widget._pil_image)
+        self.assertEqual(canvas_widget._pil_image.size, (1600, 640))
 
 
     def test_json_inspector_search_filter(self):

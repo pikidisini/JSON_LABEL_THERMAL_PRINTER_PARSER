@@ -1,4 +1,13 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **20-08-2026**: Penambahan Fitur Ekspor PDF (1-Bit Monochrome Compressed PDF Document):
+  - **Encoder PDF (`engine/printer_encoders/pdf_encoder.py`)**: Membuat modul encoder `encode_pdf(image_source, output_pdf_path, dpi, width_mm, height_mm)` yang mengemas bitmap monokrom 1-bit ke dalam dokumen PDF single-page dengan kompresi lossless CCITT Group 4 / Flate (resolusi dan ukuran fisik label $200\text{ mm} \times 80\text{ mm}$ presisi).
+  - **Integrasi Pipeline & Processor (`engine/processor.py`)**: Menambahkan dukungan format `"pdf"` ke dalam pipeline `process_label()`, menghasilkan berkas `label.pdf` ke dalam dictionary hasil render `results["pdf"]` saat format dipilih atau saat `formats="all"`.
+  - **Opsi Target Format GUI & Export As (`gui/components/control_panel.py`, `gui/main_window.py`)**: Menambahkan `"pdf"` ke dalam dropdown target format Control Panel serta mapping dialog ekspor berkas `"PDF Document (*.pdf)"`.
+  - **Dukungan CLI (`cli.py`)**: Menambahkan pilihan `"pdf"` pada argumen `--format` untuk integrasi CLI SAP background job.
+  - **Ukuran File Efisien**: Verifikasi ukuran berkas PDF pada 600 DPI hanya sekitar 26 KB (jauh di bawah batas target < 100 KB).
+  - **Pengujian Unit Test**: Menambahkan `test_pdf_encoder_format` di `tests/test_encoders.py` dan `test_format_pdf_generation_and_compression` di `tests/test_processor.py`. Seluruh unit test suite lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh binary PyInstaller `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
 - **19-08-2026**: Perbaikan Bug: 8-Bit Byte Alignment untuk Thermal Encoders (IPL, TSPL, ZPL) pada Multi-DPI (600 DPI):
   - **Akar Masalah**: Pada 600 DPI, kalkulasi lebar $(\text{200 mm} / 25.4) \times 600 = 4724\text{ px}$ tidak habis dibagi 8 ($4724 \pmod 8 = 4$). Hal ini memicu `ValueError` pada `ipl_encoder.py` karena protokol IPL mewajibkan alignment byte utuh ($width \pmod 8 = 0$) untuk mencegah korupsi stream bitmap kontinu.
   - **8-Bit Byte Alignment Formula (`engine/processor.py`)**: Menambahkan fungsi `align_to_byte_boundary(pixels, alignment=8)` yang memastikan lebar piksel selalu dibulatkan ke kelipatan 8 terdekat ke atas ($((raw\_w + 7) // 8) * 8$):

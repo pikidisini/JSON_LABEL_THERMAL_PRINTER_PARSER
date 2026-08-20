@@ -117,7 +117,7 @@ class ControlPanelWidget(ttk.Frame):
         cb_format = ttk.Combobox(
             fmt_container,
             textvariable=self.var_format,
-            values=["all", "zpl", "tspl", "ipl", "svg", "png", "bmp"],
+            values=["all", "zpl", "tspl", "ipl", "pdf", "svg", "png", "bmp"],
             state="readonly",
             width=8,
         )
