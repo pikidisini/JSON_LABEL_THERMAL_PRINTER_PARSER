@@ -39,20 +39,68 @@ def get_resvg_executable_path() -> Path:
 
 
 
+def calculate_otsu_threshold(image: Union[str, Path, Image.Image]) -> int:
+    """
+    Computes an optimal binarization threshold using Otsu's Global Thresholding Method.
+    Maximizes inter-class variance between foreground and background pixels.
+
+    Args:
+        image: Source PIL Image or path to image file.
+
+    Returns:
+        Optimal integer threshold in range [0, 255] (default fallback: 128).
+    """
+    if isinstance(image, (str, Path)):
+        img = Image.open(str(image))
+    else:
+        img = image
+
+    gray = img.convert("L")
+    hist = gray.histogram()
+    total = sum(hist)
+    if total == 0:
+        return 128
+
+    current_max = 0.0
+    threshold = 128
+    sum_total = sum(i * hist[i] for i in range(256))
+    sum_b = 0
+    weight_b = 0
+
+    for i in range(256):
+        weight_b += hist[i]
+        if weight_b == 0:
+            continue
+        weight_f = total - weight_b
+        if weight_f == 0:
+            break
+        sum_b += i * hist[i]
+        mean_b = sum_b / weight_b
+        mean_f = (sum_total - sum_b) / weight_f
+        between_var = weight_b * weight_f * ((mean_b - mean_f) ** 2)
+        if between_var > current_max:
+            current_max = between_var
+            threshold = i
+
+    return threshold
+
+
 def svg_to_png(
     svg_source: Union[str, Path],
     output_png_path: Union[str, Path],
     width_px: int = 1600,
     height_px: int = 640,
     dpi: float = 203.2,
+    super_sample_factor: int = 2,
     resvg_path: Optional[Union[str, Path]] = None,
     timeout: float = 15.0,
 ) -> Path:
     """
-    Renders an SVG file or SVG string to PNG image using resvg CLI.
+    Renders an SVG file or SVG string to PNG image using resvg CLI with optional super-sampling.
     Default dimensions: 1600 x 640 px (200mm x 80mm @ 203.2 DPI / 8 dots per mm).
-    Includes explicit process timeout and Windows-safe creationflags to avoid hangs
-    in windowed PyInstaller desktop apps.
+    When super_sample_factor > 1, renders at (super_sample_factor * target_size) and scales
+    down via LANCZOS resampling to eliminate jagged text outlines and thin line artifacts.
+    Includes explicit process timeout and Windows-safe creationflags to avoid hangs.
     """
     resvg_exe = Path(resvg_path) if resvg_path else get_resvg_executable_path()
     if not resvg_exe.is_file():
@@ -77,14 +125,19 @@ def svg_to_png(
             f.write(str(svg_source))
         input_file = temp_svg_file
 
+    render_factor = max(1, super_sample_factor)
+    render_w = width_px * render_factor if width_px is not None else None
+    render_h = height_px * render_factor if height_px is not None else None
+    render_dpi = dpi * render_factor
+
     try:
         cmd = [
             str(resvg_exe),
             str(input_file.resolve()),
             str(out_p.resolve()),
-            "--width", str(width_px),
-            "--height", str(height_px),
-            "--dpi", str(int(round(dpi))),
+            "--width", str(render_w) if render_w is not None else str(width_px),
+            "--height", str(render_h) if render_h is not None else str(height_px),
+            "--dpi", str(int(round(render_dpi))),
             "--background", "white",
         ]
 
@@ -106,14 +159,15 @@ def svg_to_png(
         if not out_p.is_file():
             raise FileNotFoundError(f"Output PNG not created by resvg: {out_p}")
 
-        # Ensure rendered PNG exactly matches target dimensions with clean 8-dot byte alignment
+        # If super-sampled, scale down to target width_px and height_px via high-quality LANCZOS
         if width_px is not None and height_px is not None:
             with Image.open(out_p) as rendered_img:
-                if rendered_img.size != (width_px, height_px):
-                    mode = "RGBA" if rendered_img.mode == "RGBA" else "RGB"
+                if render_factor > 1 or rendered_img.size != (width_px, height_px):
+                    resampled_img = rendered_img.resize((width_px, height_px), resample=Image.Resampling.LANCZOS)
+                    mode = "RGBA" if resampled_img.mode == "RGBA" else "RGB"
                     bg_color = (255, 255, 255, 255) if mode == "RGBA" else (255, 255, 255)
                     aligned_canvas = Image.new(mode, (width_px, height_px), bg_color)
-                    aligned_canvas.paste(rendered_img, (0, 0))
+                    aligned_canvas.paste(resampled_img, (0, 0))
                     aligned_canvas.save(out_p, format="PNG")
 
         return out_p

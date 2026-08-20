@@ -8,13 +8,13 @@
 
 # Git Automation Rules
 - **Branch Management**:
-  - DILARANG melakukan `git push` langsung ke branch `main` atau `master`.
-  - Sebelum membuat perubahan atau menyelesaikan tugas, pastikan bekerja di feature branch tersendiri (contoh: `feature/nama-fitur` atau `fix/nama-bug`).
-  - Jika masih di branch `main`, buat branch baru terlebih dahulu: `git checkout -b feature/deskripsi-singkat`.
+  - DILARANG melakukan `git push` langsung ke branch `main`, `master`, atau `dev`.
+  - Sebelum membuat perubahan atau menyelesaikan tugas, pastikan bekerja di feature branch tersendiri yang cabangnya diambil dari branch `dev` (bukan `main`).
+  - Jika masih di branch `main` atau `dev`, buat branch baru terlebih dahulu: `git checkout -b feature/deskripsi-singkat dev`.
 
 - **Workflow Setelah Tugas Selesai**:
   1. Jalankan `git status` untuk memeriksa perubahan file.
-  2. Lakukan `git add .` untuk mengumpulkan file yang relevan (pastikan exe terbaru ikut di-stage jika di-track git).
+  2. Lakukan `git add .` untuk mengumpulkan file yang relevan (pastikan .exe terbaru ikut di-stage).
   3. Buat `git commit` dengan pesan standar konvensional (contoh: `feat: update label parser logic`).
   4. Lakukan `git push origin <nama-feature-branch>` ke remote repository.
-  5. Berikan kabar ke pengguna bahwa build dan push ke feature branch telah selesai.
+  5. Minta izin/konfirmasi ke pengguna apakah ingin langsung dibuatkan Pull Request (PR) dari `<nama-feature-branch>` ke branch `dev` menggunakan GitHub CLI (`gh pr create`).

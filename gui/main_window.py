@@ -91,6 +91,8 @@ class MainWindow(tk.Tk):
         target_format = self.ctrl_panel.var_format.get()
         dpi_value = self.ctrl_panel.get_dpi()
         rotation_val = self.ctrl_panel.get_rotation()
+        thresh_val = self.ctrl_panel.get_binarization_threshold()
+        ss_factor = self.ctrl_panel.get_super_sample_factor()
 
         if not json_path.is_file():
             messagebox.showerror("Error", f"JSON file does not exist: {json_path}")
@@ -99,7 +101,15 @@ class MainWindow(tk.Tk):
             messagebox.showerror("Error", f"SVG template file does not exist: {template_path}")
             return
 
-        self._start_render_thread(json_path, template_path, target_format, dpi=dpi_value, rotation=rotation_val)
+        self._start_render_thread(
+            json_path,
+            template_path,
+            target_format,
+            dpi=dpi_value,
+            rotation=rotation_val,
+            threshold=thresh_val,
+            super_sample_factor=ss_factor,
+        )
 
     def execute_dry_run(self):
         template_path = Path(self.ctrl_panel.var_template_path.get())
@@ -113,7 +123,17 @@ class MainWindow(tk.Tk):
         self.ctrl_panel.var_json_path.set(str(self.default_sample_json.resolve()))
         dpi_value = self.ctrl_panel.get_dpi()
         rotation_val = self.ctrl_panel.get_rotation()
-        self._start_render_thread(self.default_sample_json, template_path, "all", dpi=dpi_value, rotation=rotation_val)
+        thresh_val = self.ctrl_panel.get_binarization_threshold()
+        ss_factor = self.ctrl_panel.get_super_sample_factor()
+        self._start_render_thread(
+            self.default_sample_json,
+            template_path,
+            "all",
+            dpi=dpi_value,
+            rotation=rotation_val,
+            threshold=thresh_val,
+            super_sample_factor=ss_factor,
+        )
 
     def _start_render_thread(
         self,
@@ -122,11 +142,15 @@ class MainWindow(tk.Tk):
         fmt: str,
         dpi: float = 203.2,
         rotation: int = 0,
+        threshold: int = 128,
+        super_sample_factor: int = 2,
     ):
         self._current_render_dpi = dpi
         self._current_render_rotation = rotation
         self.progress_bar.start(10)
-        self.set_status(f"Rendering label @ {dpi} DPI (Rotation: {rotation}°) & generating 1-bit bitmap...")
+        self.set_status(
+            f"Rendering label @ {dpi} DPI (Rotation: {rotation}°, Threshold: {threshold}, SuperSample: {super_sample_factor}x)..."
+        )
 
         worker = RenderWorker(
             parent=self,
@@ -138,6 +162,8 @@ class MainWindow(tk.Tk):
             on_error=self._on_render_error,
             dpi=dpi,
             rotation=rotation,
+            binarization_threshold=threshold,
+            super_sample_factor=super_sample_factor,
         )
         worker.start()
 

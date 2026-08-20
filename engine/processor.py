@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from .renderer import load_json_contract, load_svg_template, inject_data, validate_no_orphan_tokens
 from .barcode_generator import inject_barcodes_and_qr
-from .rasterizer import svg_to_png, png_to_1bit_monochrome, save_1bit_bmp, rotate_image_cw
+from .rasterizer import svg_to_png, png_to_1bit_monochrome, save_1bit_bmp, rotate_image_cw, calculate_otsu_threshold
 from .bit_packer import get_raw_bitmap_data
 from .printer_encoders import encode_zpl, encode_tspl, encode_ipl, encode_pdf
 from PIL import Image
@@ -39,6 +39,8 @@ def process_label(
     formats: Union[str, List[str]] = "all",
     dpi: float = 203.2,
     rotation: int = 0,
+    binarization_threshold: int = 128,
+    super_sample_factor: int = 2,
     width_px: Optional[int] = None,
     height_px: Optional[int] = None,
     width_mm: float = 200.0,
@@ -47,8 +49,23 @@ def process_label(
     """
     Executes the full end-to-end rendering and encoding pipeline.
     
-    Returns a dictionary mapping format names ('svg', 'png', 'bmp', 'pdf', 'zpl', 'tspl', 'ipl')
-    to their generated file paths.
+    Args:
+        json_source: Input JSON contract or dict.
+        template_source: SVG template path.
+        out_dir: Output directory for rendered artifacts.
+        formats: Target formats ('all', or comma-separated list like 'zpl,png').
+        dpi: Target thermal printer resolution DPI (e.g. 203.2, 300, 600).
+        rotation: Clockwise rotation angle (0, 90, 180, 270 degrees).
+        binarization_threshold: Threshold [0..255] for monochrome 1-bit conversion (default: 128).
+        super_sample_factor: Multiplier for vector anti-aliasing super-sampling before downscaling (default: 2).
+        width_px: Explicit override width in dots (optional).
+        height_px: Explicit override height in dots (optional).
+        width_mm: Physical label width in millimeters (default: 200.0).
+        height_mm: Physical label height in millimeters (default: 80.0).
+
+    Returns:
+        Dictionary mapping format names ('svg', 'png', 'bmp', 'pdf', 'zpl', 'tspl', 'ipl')
+        to their generated file paths.
     """
     output_dir = Path(out_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -86,7 +103,7 @@ def process_label(
     # Always include svg and png in results as they are core visual/inspection artifacts
     results["svg"] = svg_path
 
-    # Step 4: Rasterize SVG to PNG preview with dynamic DPI and dimensions
+    # Step 4: Rasterize SVG to PNG preview with dynamic DPI and dimensions (with super-sampling)
     png_path = output_dir / "preview.png"
     svg_to_png(
         svg_source=complete_svg,
@@ -94,6 +111,7 @@ def process_label(
         width_px=target_w_px,
         height_px=target_h_px,
         dpi=dpi,
+        super_sample_factor=super_sample_factor,
     )
 
     # Step 4a: Apply image rotation before 1-bit binarization & printer encoding if specified
@@ -120,8 +138,8 @@ def process_label(
     # Always include preview PNG in results (essential for UI canvas rendering)
     results["png"] = png_path
 
-    # Step 5: Convert PNG to 1-Bit Monochrome & Save BMP
-    image_1bit = png_to_1bit_monochrome(png_path)
+    # Step 5: Convert PNG to 1-Bit Monochrome & Save BMP using adjustable threshold
+    image_1bit = png_to_1bit_monochrome(png_path, threshold=binarization_threshold)
     bmp_path = output_dir / "label_1bit.bmp"
     save_1bit_bmp(image_1bit, bmp_path)
     if "bmp" in selected_formats:

@@ -47,6 +47,20 @@ def main() -> int:
         choices=[0, 90, 180, 270],
         help="Image rotation angle in degrees (default: 0 = normal)",
     )
+    parser.add_argument(
+        "--threshold",
+        required=False,
+        type=int,
+        default=128,
+        help="Monochrome 1-bit binarization threshold [0..255] (default: 128)",
+    )
+    parser.add_argument(
+        "--super-sample",
+        required=False,
+        type=int,
+        default=2,
+        help="Vector anti-aliasing super-sampling factor (default: 2)",
+    )
 
     args = parser.parse_args()
 
@@ -62,6 +76,8 @@ def main() -> int:
             formats=args.format,
             dpi=args.dpi,
             rotation=args.rotation,
+            binarization_threshold=args.threshold,
+            super_sample_factor=args.super_sample,
         )
 
         print("[OK] Label processed successfully. Generated files:")

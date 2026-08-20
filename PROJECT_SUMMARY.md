@@ -1,4 +1,18 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **20-08-2026**: Peningkatan Kualitas Render 1-Bit BMP (Anti-Aliasing Super-Sampling & Dynamic Binarization Threshold):
+  - **Super-Sampling Vector Rendering (`engine/rasterizer.py`)**: Menambahkan parameter `super_sample_factor` (default $2\times$) pada fungsi `svg_to_png()`. Resvg merender gambar pada resolusi tinggi ($2\times$ ukuran target) lalu dilakukan downscaling kembali ke dimensi target melalui algoritma resampling Pillow `LANCZOS`. Hasilnya menghasilkan kontur teks dan garis border yang halus tanpa artefak bergerigi (*jagged text/broken borders*).
+  - **Otsu Global Thresholding Auto-Detection (`engine/rasterizer.py`)**: Mengimplementasikan `calculate_otsu_threshold(image)` yang menghitung ambang batas pemisahan biner optimal $[0..255]$ dengan memaksimalkan variansi antar-kelas (*inter-class variance*) histogram citra.
+  - **Strict Monochrome Purity (No Dithering)**: Tetap mempertahankan binarisasi ketat tanpa dithering (Floyd-Steinberg/Ordered Dithering dilarang keras) untuk menjaga integritas garis barcode 1D dan modul QR code agar 100% terbaca oleh industrial barcode scanner.
+  - **Integrasi Pipeline & Parameter Forwarding (`engine/processor.py`)**: Memperbarui `process_label()` untuk menerima `binarization_threshold` (default `128`) dan `super_sample_factor` (default `2`), meneruskannya ke `svg_to_png()` dan `png_to_1bit_monochrome()`.
+  - **GUI Controls & Auto Threshold (`gui/components/control_panel.py`, `gui/worker.py`, `gui/main_window.py`)**:
+    - Menambahkan kontrol Spinbox interaktif `Threshold (0-255)` dengan default `128`.
+    - Menambahkan tombol `Auto` (Otsu's Method) yang secara otomatis mendeteksi threshold optimal dan me-render ulang kanvas secara real-time.
+    - Menambahkan checkbox `2x SuperSample` untuk mengaktifkan/menonaktifkan anti-aliasing.
+    - Meneruskan konfigurasi threshold dan super-sample melalui background worker thread `RenderWorker`.
+  - **Dukungan CLI Engine (`cli.py`)**: Menambahkan opsi `--threshold <int 0-255>` (default `128`) dan `--super-sample <int>` (default `2`).
+  - **Pengujian Unit Test (`tests/test_rasterizer.py`)**: Menambahkan `test_super_sampling_and_otsu_threshold` untuk memverifikasi akurasi super-sampling $2\times$, kalkulasi Otsu threshold, dan kemurnian monokrom biner (`extrema == (0, 255)`). Seluruh unit test suite berhasil lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh standalone executables `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
 - **20-08-2026**: Perbaikan Bug: Physical Printout Shift / Cut-off Issue Post-Rotation (ZPL & TSPL Media Headers):
   - **Akar Masalah**: Pada saat gambar label dirotasi ($90^\circ$ atau $270^\circ$), dimensi piksel tertukar ($W \times H \rightarrow H \times W$), namun ZPL encoder sebelumnya tidak mengirimkan header print width (`^PW`) dan label length (`^LL`), menyebabkan buffer printhead printer Zebra berasumsi pada lebar media default lama yang memicu pergeseran offset horizontal (*horizontal shift*) ke kanan dan pemotongan konten (*clipping*).
   - **ZPL Header Update (`engine/printer_encoders/zpl_encoder.py`)**: Memperbarui encoder ZPL agar menerima dimensi fisik efektif (`width_mm`, `height_mm`) dan selalu menyematkan perintah `^PW<width_in_dots>` serta `^LL<height_in_dots>` di awal payload `^XA` sebelum field grafik `^FO0,0^GFA,...`.

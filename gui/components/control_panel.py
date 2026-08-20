@@ -86,6 +86,8 @@ class ControlPanelWidget(ttk.Frame):
         self.var_format = tk.StringVar(value="all")
         self.var_dpi = tk.StringVar(value=self.DPI_PRESETS[0])
         self.var_rotation = tk.StringVar(value=self.ROTATION_PRESETS[0])
+        self.var_threshold = tk.IntVar(value=128)
+        self.var_super_sample = tk.BooleanVar(value=True)
 
         self._build_ui()
 
@@ -108,6 +110,23 @@ class ControlPanelWidget(ttk.Frame):
         except (ValueError, IndexError):
             return 0
 
+    def get_binarization_threshold(self) -> int:
+        """Returns the current monochrome binarization threshold [0..255]."""
+        try:
+            val = int(self.var_threshold.get())
+            return max(0, min(255, val))
+        except (ValueError, tk.TclError):
+            return 128
+
+    def get_super_sample_factor(self) -> int:
+        """Returns super-sampling factor (2 if enabled, 1 if disabled)."""
+        return 2 if self.var_super_sample.get() else 1
+
+    def set_binarization_threshold(self, value: int) -> None:
+        """Sets the binarization threshold value."""
+        clamped = max(0, min(255, int(value)))
+        self.var_threshold.set(clamped)
+
     def _build_ui(self):
         # Frame 1: File Pickers
         files_frame = ttk.LabelFrame(self, text="Source Inputs", padding=6)
@@ -125,8 +144,8 @@ class ControlPanelWidget(ttk.Frame):
 
         files_frame.columnconfigure(1, weight=1)
 
-        # Frame 2: Format, DPI & Rotation Settings
-        opts_frame = ttk.LabelFrame(self, text="Output, DPI & Rotation", padding=6)
+        # Frame 2: Format, DPI, Rotation & Binarization Quality Settings
+        opts_frame = ttk.LabelFrame(self, text="Output, DPI, Rotation & Quality", padding=6)
         opts_frame.pack(side="left", fill="y", padx=4, pady=2)
 
         # Format Combobox
@@ -171,6 +190,44 @@ class ControlPanelWidget(ttk.Frame):
         cb_rot.pack(side="top", pady=2, fill="x")
         cb_rot.bind("<<ComboboxSelected>>", self._handle_rotation_selected)
         _ToolTip(cb_rot, "Rotate image (0°, 90°, 180°, 270° CW) before 1-bit & printer encoding")
+
+        # Threshold Spinbox + Auto Otsu Button
+        thresh_container = ttk.Frame(opts_frame)
+        thresh_container.pack(side="left", padx=3, pady=0)
+        ttk.Label(thresh_container, text="Threshold (0-255):").pack(side="top", anchor="w")
+        thresh_sub = ttk.Frame(thresh_container)
+        thresh_sub.pack(side="top", pady=2, fill="x")
+        sp_thresh = ttk.Spinbox(
+            thresh_sub,
+            from_=0,
+            to=255,
+            increment=1,
+            textvariable=self.var_threshold,
+            width=5,
+        )
+        sp_thresh.pack(side="left", padx=(0, 2))
+        _ToolTip(sp_thresh, "Monochrome binarization threshold (0-255). Lower = thinner strokes, Higher = bolder text")
+
+        btn_otsu = ttk.Button(
+            thresh_sub,
+            text="Auto",
+            width=4,
+            command=self._handle_auto_otsu,
+        )
+        btn_otsu.pack(side="left")
+        _ToolTip(btn_otsu, "Auto-detect optimal threshold using Otsu algorithm from rendered preview")
+
+        # Super-Sampling 2x Checkbox
+        ss_container = ttk.Frame(opts_frame)
+        ss_container.pack(side="left", padx=3, pady=0)
+        ttk.Label(ss_container, text="Anti-Aliasing:").pack(side="top", anchor="w")
+        chk_ss = ttk.Checkbutton(
+            ss_container,
+            text="2x SuperSample",
+            variable=self.var_super_sample,
+        )
+        chk_ss.pack(side="top", pady=4)
+        _ToolTip(chk_ss, "Render at 2x resolution and downscale with LANCZOS to smooth text outlines and borders")
 
         # Frame 3: Action Buttons
         actions_frame = ttk.LabelFrame(self, text="Engine Actions", padding=6)
@@ -262,6 +319,23 @@ class ControlPanelWidget(ttk.Frame):
         )
         if filename:
             self.var_template_path.set(filename)
+
+    def _handle_auto_otsu(self):
+        """Calculates and sets Otsu threshold using preview.png from out/ directory or triggers render if missing."""
+        out_preview = Path("out") / "preview.png"
+        if out_preview.is_file():
+            try:
+                from engine.rasterizer import calculate_otsu_threshold
+                optimal_t = calculate_otsu_threshold(out_preview)
+                self.set_binarization_threshold(optimal_t)
+                messagebox.showinfo("Auto Threshold", f"Optimal Otsu Threshold detected: {optimal_t}")
+                if self.on_render_clicked:
+                    self.on_render_clicked()
+                return
+            except Exception as e:
+                messagebox.showwarning("Auto Threshold", f"Could not calculate Otsu threshold: {e}")
+        else:
+            messagebox.showinfo("Auto Threshold", "Please click 'Render & Inspect' first to generate preview.")
 
     def _handle_render(self):
         if not self.var_json_path.get() or not self.var_template_path.get():

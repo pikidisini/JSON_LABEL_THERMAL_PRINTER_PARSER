@@ -76,5 +76,43 @@ class TestRasterizer(unittest.TestCase):
         self.assertEqual(len(raw_bytes), 200 * 640)  # 128,000 bytes
 
 
+    def test_super_sampling_and_otsu_threshold(self):
+        """Tests super-sampling factor 2 and Otsu threshold calculation."""
+        from engine.rasterizer import calculate_otsu_threshold
+
+        contract_data = load_json_contract(self.sample_json_path)
+        svg_template = load_svg_template(self.sample_template_path)
+        injected_text = inject_data(svg_template, contract_data)
+        complete_svg = inject_barcodes_and_qr(injected_text, contract_data)
+
+        png_path = self.out_dir / "preview_supersampled.png"
+        svg_to_png(
+            svg_source=complete_svg,
+            output_png_path=png_path,
+            width_px=1600,
+            height_px=640,
+            dpi=203.2,
+            super_sample_factor=2,
+        )
+
+        self.assertTrue(png_path.is_file())
+        with Image.open(png_path) as img:
+            self.assertEqual(img.size, (1600, 640))
+
+        # Test Otsu threshold calculation
+        otsu_val = calculate_otsu_threshold(png_path)
+        self.assertGreaterEqual(otsu_val, 0)
+        self.assertLessEqual(otsu_val, 255)
+
+        # Test 1-bit monochrome with Otsu threshold
+        img_1bit = png_to_1bit_monochrome(png_path, threshold=otsu_val)
+        self.assertEqual(img_1bit.mode, "1")
+        self.assertEqual(img_1bit.size, (1600, 640))
+
+        # Check pure monochrome (only 0 and 255)
+        extrema = img_1bit.getextrema()
+        self.assertEqual(extrema, (0, 255))
+
+
 if __name__ == "__main__":
     unittest.main()
