@@ -144,7 +144,13 @@ def process_label(
 
     # Step 7: Encoders
     if "zpl" in selected_formats or "all" in selected_formats:
-        zpl_str = encode_zpl(raw_bytes, width_px=w, height_px=h)
+        zpl_str = encode_zpl(
+            raw_bytes,
+            width_px=w,
+            height_px=h,
+            width_mm=effective_width_mm,
+            height_mm=effective_height_mm,
+        )
         zpl_path = output_dir / "label.zpl"
         with open(zpl_path, "w", encoding="ascii") as f:
             f.write(zpl_str)

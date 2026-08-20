@@ -23,6 +23,8 @@ class TestPrinterEncoders(unittest.TestCase):
         zpl = encode_zpl(dummy_bytes, width_px=16, height_px=2)
         self.assertTrue(zpl.startswith("^XA\n"))
         self.assertTrue(zpl.endswith("^XZ\n"))
+        self.assertIn("^PW16\n", zpl)
+        self.assertIn("^LL2\n", zpl)
         self.assertIn("^FO0,0^GFA,4,4,2,FF00AA55^FS", zpl)
 
     def test_tspl_encoder_format(self):
@@ -31,6 +33,27 @@ class TestPrinterEncoders(unittest.TestCase):
         self.assertTrue(tspl.startswith(b"SIZE 200.0 mm,80.0 mm\r\n"))
         self.assertIn(b"BITMAP 0,0,2,1,0,", tspl)
         self.assertTrue(tspl.endswith(b"\r\nPRINT 1,1\r\n"))
+
+    def test_rotated_encoders_headers(self):
+        # Test 90 degree rotated label: 200x80 mm @ 203.2 DPI rotated to 80x200 mm (640x1600 px)
+        rot_w_px = 640
+        rot_h_px = 1600
+        dummy_bytes = b"\x00" * ((rot_w_px // 8) * rot_h_px)
+
+        # 1. ZPL must contain ^PW640 and ^LL1600
+        zpl = encode_zpl(dummy_bytes, width_px=rot_w_px, height_px=rot_h_px, width_mm=80.0, height_mm=200.0)
+        self.assertIn("^PW640\n", zpl)
+        self.assertIn("^LL1600\n", zpl)
+        self.assertIn("^FO0,0^GFA,", zpl)
+
+        # 2. TSPL must contain SIZE 80.0 mm,200.0 mm
+        tspl = encode_tspl(dummy_bytes, width_px=rot_w_px, height_px=rot_h_px, width_mm=80.0, height_mm=200.0)
+        self.assertTrue(tspl.startswith(b"SIZE 80.0 mm,200.0 mm\r\n"))
+        self.assertIn(f"BITMAP 0,0,{rot_w_px // 8},{rot_h_px},0,".encode("ascii"), tspl)
+
+        # 3. IPL must contain graphic definition matching rotated dimensions w640;h1600
+        ipl = encode_ipl(dummy_bytes, width_px=rot_w_px, height_px=rot_h_px)
+        self.assertIn(f"\x02G1;o0,0;w{rot_w_px};h{rot_h_px};d0002;\x03".encode("ascii"), ipl)
 
     def test_ipl_encoder_format(self):
         # 16 pixels width (2 bytes/row), 1 pixel height = 2 bytes total
