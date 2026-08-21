@@ -1,4 +1,18 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **21-08-2026**: Implementasi Otsu's Dynamic Thresholding & NEAREST Resampling Filter untuk Output Monokrom 1-Bit BMP:
+  - **NEAREST Downsampling Resampling Filter (`engine/rasterizer.py`, `engine/processor.py`)**:
+    - Mengonfigurasi filter downsampling default menjadi **`NEAREST`** untuk pipeline binarisasi monokrom 1-bit BMP dan printer payload.
+    - Menghilangkan degradasi blur anti-aliasing dan piksel transisi abu-abu (*intermediate grayscale edge pixels*) yang memicu artefak takik (*notches*), distorsi modul non-ortogonal, dan *diagonal bleeding* pada modul QR code serta 1D barcode.
+  - **Otsu Global Thresholding Auto-Calculation (`engine/rasterizer.py`, `engine/processor.py`)**:
+    - Memperbaiki `calculate_otsu_threshold()` dengan algoritma pencarian titik tengah variansi maksimum (*midpoint of maximum variance plateau*) sehingga stabil dan akurat pada citra bernilai biner murni (0 dan 255) maupun citra multi-level grayscale.
+    - Mengintegrasikan deteksi Otsu otomatis pada `process_label()` apabila `binarization_threshold` bernilai `None`, menggantikan ambang statis hardcoded `128`.
+  - **Dukungan CLI Engine (`cli.py`)**:
+    - Memperbarui default argumen `--threshold` menjadi `None` (auto-calculate via Otsu) dan default `--filter` menjadi `NEAREST`.
+  - **Pengujian Unit Test (`tests/test_rasterizer.py`, `tests/test_processor.py`)**:
+    - Memperbarui dan memverifikasi unit test suite untuk menguji Otsu thresholding dan filter `NEAREST`. Seluruh unit test lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh standalone executables `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
+
 - **20-08-2026**: Peningkatan Kualitas Vektor Barcode & QR Code (Path Unification, `crispEdges`, dan `BOX` Downsampling Filter):
   - **SVG Path Unification & Run-Length Encoding (`engine/barcode_generator.py`)**:
     - Memperbarui generator Barcode 1D (`create_barcode_svg_group`) dan QR Code 2D (`create_qr_svg_group`) untuk mengonsolidasikan ratusan elemen individual `<rect>` menjadi satu elemen SVG `<path>` terpadu dengan pengkodean *horizontal run-length encoding* (`M x y H x1 V y1 H x Z`).

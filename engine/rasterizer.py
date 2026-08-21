@@ -14,9 +14,9 @@ from typing import Dict, Optional, Union
 from PIL import Image
 
 RESAMPLING_FILTERS: Dict[str, Image.Resampling] = {
+    "NEAREST": Image.Resampling.NEAREST,
     "BOX": Image.Resampling.BOX,
     "LANCZOS": Image.Resampling.LANCZOS,
-    "NEAREST": Image.Resampling.NEAREST,
     "BILINEAR": Image.Resampling.BILINEAR,
     "BICUBIC": Image.Resampling.BICUBIC,
     "HAMMING": Image.Resampling.HAMMING,
@@ -70,11 +70,12 @@ def calculate_otsu_threshold(image: Union[str, Path, Image.Image]) -> int:
     if total == 0:
         return 128
 
-    current_max = 0.0
+    current_max = -1.0
     threshold = 128
     sum_total = sum(i * hist[i] for i in range(256))
     sum_b = 0
     weight_b = 0
+    best_thresholds = []
 
     for i in range(256):
         weight_b += hist[i]
@@ -89,7 +90,13 @@ def calculate_otsu_threshold(image: Union[str, Path, Image.Image]) -> int:
         between_var = weight_b * weight_f * ((mean_b - mean_f) ** 2)
         if between_var > current_max:
             current_max = between_var
-            threshold = i
+            best_thresholds = [i]
+        elif between_var == current_max:
+            best_thresholds.append(i)
+
+    if best_thresholds:
+        # Return midpoint of maximum variance plateau (e.g. 127 for binary 0/255 images)
+        return int(sum(best_thresholds) / len(best_thresholds))
 
     return threshold
 
@@ -101,7 +108,7 @@ def svg_to_png(
     height_px: int = 640,
     dpi: float = 203.2,
     super_sample_factor: int = 2,
-    downsampling_filter: str = "BOX",
+    downsampling_filter: str = "NEAREST",
     resvg_path: Optional[Union[str, Path]] = None,
     timeout: float = 15.0,
 ) -> Path:
@@ -109,8 +116,8 @@ def svg_to_png(
     Renders an SVG file or SVG string to PNG image using resvg CLI with optional super-sampling.
     Default dimensions: 1600 x 640 px (200mm x 80mm @ 203.2 DPI / 8 dots per mm).
     When super_sample_factor > 1, renders at (super_sample_factor * target_size) and scales
-    down via selectable downsampling filter (default: BOX for crisp barcode/QR module edges
-    while maintaining clean text outlines).
+    down via selectable downsampling filter (default: NEAREST to completely prevent intermediate
+    anti-aliasing grayscale notches/diagonal bleeding during 1-bit binarization).
     Includes explicit process timeout and Windows-safe creationflags to avoid hangs.
     """
     resvg_exe = Path(resvg_path) if resvg_path else get_resvg_executable_path()
@@ -175,7 +182,7 @@ def svg_to_png(
             with Image.open(out_p) as rendered_img:
                 if render_factor > 1 or rendered_img.size != (width_px, height_px):
                     filter_key = str(downsampling_filter).upper().strip()
-                    resample_filter = RESAMPLING_FILTERS.get(filter_key, Image.Resampling.BOX)
+                    resample_filter = RESAMPLING_FILTERS.get(filter_key, Image.Resampling.NEAREST)
                     resampled_img = rendered_img.resize((width_px, height_px), resample=resample_filter)
                     mode = "RGBA" if resampled_img.mode == "RGBA" else "RGB"
                     bg_color = (255, 255, 255, 255) if mode == "RGBA" else (255, 255, 255)

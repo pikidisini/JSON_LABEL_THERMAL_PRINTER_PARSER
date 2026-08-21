@@ -39,9 +39,9 @@ def process_label(
     formats: Union[str, List[str]] = "all",
     dpi: float = 203.2,
     rotation: int = 0,
-    binarization_threshold: int = 128,
+    binarization_threshold: Optional[int] = None,
     super_sample_factor: int = 2,
-    downsampling_filter: str = "BOX",
+    downsampling_filter: str = "NEAREST",
     width_px: Optional[int] = None,
     height_px: Optional[int] = None,
     width_mm: float = 200.0,
@@ -57,9 +57,9 @@ def process_label(
         formats: Target formats ('all', or comma-separated list like 'zpl,png').
         dpi: Target thermal printer resolution DPI (e.g. 203.2, 300, 600).
         rotation: Clockwise rotation angle (0, 90, 180, 270 degrees).
-        binarization_threshold: Threshold [0..255] for monochrome 1-bit conversion (default: 128).
+        binarization_threshold: Threshold [0..255] for monochrome 1-bit conversion (None = auto-detect via Otsu).
         super_sample_factor: Multiplier for vector anti-aliasing super-sampling before downscaling (default: 2).
-        downsampling_filter: Resampling filter for super-sample downscaling (default: 'BOX', or 'LANCZOS', 'NEAREST').
+        downsampling_filter: Resampling filter for super-sample downscaling (default: 'NEAREST' for sharp 1-bit output).
         width_px: Explicit override width in dots (optional).
         height_px: Explicit override height in dots (optional).
         width_mm: Physical label width in millimeters (default: 200.0).
@@ -141,8 +141,13 @@ def process_label(
     # Always include preview PNG in results (essential for UI canvas rendering)
     results["png"] = png_path
 
-    # Step 5: Convert PNG to 1-Bit Monochrome & Save BMP using adjustable threshold
-    image_1bit = png_to_1bit_monochrome(png_path, threshold=binarization_threshold)
+    # Step 5: Convert PNG to 1-Bit Monochrome & Save BMP using Otsu or adjustable threshold
+    effective_threshold = (
+        binarization_threshold
+        if binarization_threshold is not None
+        else calculate_otsu_threshold(png_path)
+    )
+    image_1bit = png_to_1bit_monochrome(png_path, threshold=effective_threshold)
     bmp_path = output_dir / "label_1bit.bmp"
     save_1bit_bmp(image_1bit, bmp_path)
     if "bmp" in selected_formats:

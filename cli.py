@@ -51,8 +51,8 @@ def main() -> int:
         "--threshold",
         required=False,
         type=int,
-        default=128,
-        help="Monochrome 1-bit binarization threshold [0..255] (default: 128)",
+        default=None,
+        help="Monochrome 1-bit binarization threshold [0..255] (default: None, auto-calculated via Otsu)",
     )
     parser.add_argument(
         "--super-sample",
@@ -65,9 +65,9 @@ def main() -> int:
         "--filter",
         required=False,
         type=str,
-        default="BOX",
-        choices=["BOX", "LANCZOS", "NEAREST", "BILINEAR", "BICUBIC", "HAMMING"],
-        help="Downsampling resampling filter for super-sampling (default: BOX)",
+        default="NEAREST",
+        choices=["NEAREST", "BOX", "LANCZOS", "BILINEAR", "BICUBIC", "HAMMING"],
+        help="Downsampling resampling filter for super-sampling (default: NEAREST)",
     )
 
     args = parser.parse_args()
