@@ -14,8 +14,8 @@ class TestPrinterEncoders(unittest.TestCase):
         self.project_root = Path(__file__).parent.parent
         self.sample_json_path = self.project_root / "data_samples" / "sample_roll.json"
         self.sample_template_path = self.project_root / "assets" / "templates" / "label_roll_80x200.svg"
-        self.out_dir = self.project_root / "out_test_encoders"
-        self.out_dir.mkdir(exist_ok=True)
+        self.out_dir = self.project_root / "temp_test_artifacts" / "encoders_tests"
+        self.out_dir.mkdir(parents=True, exist_ok=True)
 
     def test_zpl_encoder_format(self):
         # 16 pixels width (2 bytes/row), 2 pixels height = 4 bytes total

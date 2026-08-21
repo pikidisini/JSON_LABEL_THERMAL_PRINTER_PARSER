@@ -17,8 +17,8 @@ class TestRasterizer(unittest.TestCase):
         self.project_root = Path(__file__).parent.parent
         self.sample_json_path = self.project_root / "data_samples" / "sample_roll.json"
         self.sample_template_path = self.project_root / "assets" / "templates" / "label_roll_80x200.svg"
-        self.out_dir = self.project_root / "out_test_raster"
-        self.out_dir.mkdir(exist_ok=True)
+        self.out_dir = self.project_root / "temp_test_artifacts" / "rasterizer_tests"
+        self.out_dir.mkdir(parents=True, exist_ok=True)
 
     def test_rotate_image_cw_dimensions(self):
         """Tests clockwise rotation of PIL images across 0°, 90°, 180°, and 270°."""

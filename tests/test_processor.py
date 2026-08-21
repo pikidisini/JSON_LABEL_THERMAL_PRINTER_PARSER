@@ -18,7 +18,7 @@ class TestProcessorFormats(unittest.TestCase):
         self.project_root = Path(__file__).parent.parent
         self.json_path = self.project_root / "data_samples" / "sample_roll.json"
         self.svg_path = self.project_root / "assets" / "templates" / "label_roll_80x200.svg"
-        self.temp_out = self.project_root / "out_test_processor"
+        self.temp_out = self.project_root / "temp_test_artifacts" / "processor_tests"
         self.temp_out.mkdir(parents=True, exist_ok=True)
 
     def test_format_svg_includes_preview_png(self):

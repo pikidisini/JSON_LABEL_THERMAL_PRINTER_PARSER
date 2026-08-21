@@ -32,4 +32,13 @@
      `git checkout dev && git pull origin dev`
   5. Berikan laporan ringkas kepada pengguna bahwa fitur telah sukses di-build, di-review, di-push, dan di-merge ke branch `dev`.
 
+# Temporary Test Artifacts Management
+- **Output Directory Structure**:
+  - Semua file keluaran pengujian (*test output*), debug file, dan temporary image (*.bmp, *.png, *.svg, *.zpl, *.pdf, dll.) DILARANG disimpan langsung di root directory proyek.
+  - Seluruh artefak pengujian HARUS disimpan di folder terisolasi: `temp_test_artifacts/` (contoh: `temp_test_artifacts/processor_tests/`, `temp_test_artifacts/encoders_tests/`, `temp_test_artifacts/rasterizer_tests/`).
+  - Folder `temp_test_artifacts/` telah terdaftar di `.gitignore` sehingga tidak akan mengotori git tracking dan memudahkan pembersihan berkala.
+- **Cleanup Guidelines**:
+  - Pastikan root directory tetap bersih dari file testing temporer sebelum melakukan commit.
+  - Jalankan `git status` untuk memastikan hanya source code, dokumentasi, dan biner yang semestinya yang di-stage.
+
 
