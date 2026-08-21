@@ -1,4 +1,14 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **21-08-2026**: Restrukturisasi & Manajemen Folder Temporary Test Artifacts (`temp_test_artifacts/`):
+  - **Pembersihan Root Directory**: Menghapus ratusan berkas gambar pengujian temporer (`*.bmp`, `*.png`, `*.svg`) dan berbagai folder output pengujian lama (`out_test_*`, `dist_*`, `temp_*`, `build/`) dari root direktori proyek.
+  - **Sentralisasi Artefak Pengujian (`temp_test_artifacts/`)**:
+    - Memperbarui seluruh suite unit test (`tests/test_processor.py`, `tests/test_encoders.py`, `tests/test_rasterizer.py`, `tests/test_renderer.py`, `tests/test_renderer_unittest.py`) agar seluruh berkas hasil eksekusi pengujian tersimpan secara otomatis dan terisolasi di dalam subdirektori `temp_test_artifacts/`.
+  - **Git Ignore & Clinerules Update (`.gitignore`, `.clinerules`)**:
+    - Menambahkan aturan eksplisit di `.gitignore` untuk mengabaikan direktori `temp_test_artifacts/` serta pola wildcard berkas keluaran sementara.
+    - Menambahkan pedoman baru pada `.clinerules` terkait manajemen penyimpanan artefak pengujian agar pengawasan kebersihan repositori selalu konsisten.
+  - **Binary Rebuild & Verifikasi**: Rebuild penuh executable standalone `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe` serta verifikasi seluruh suite unit test.
+
+
 - **21-08-2026**: Implementasi Otsu's Dynamic Thresholding & NEAREST Resampling Filter untuk Output Monokrom 1-Bit BMP:
   - **NEAREST Downsampling Resampling Filter (`engine/rasterizer.py`, `engine/processor.py`)**:
     - Mengonfigurasi filter downsampling default menjadi **`NEAREST`** untuk pipeline binarisasi monokrom 1-bit BMP dan printer payload.

@@ -38,7 +38,9 @@ class TestRenderer(unittest.TestCase):
             load_json_contract(invalid_data)
 
     def test_render_sample_roll_success(self):
-        out_file = self.project_root / "out_test_unittest.svg"
+        out_dir = self.project_root / "temp_test_artifacts" / "renderer_tests"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / "out_test_unittest.svg"
         result = render_svg(self.sample_json_path, self.sample_template_path, out_file)
 
         self.assertTrue(out_file.is_file())

@@ -15,25 +15,22 @@ __pycache__/
 engine/bin/*.exe
 !engine/bin/.gitkeep
 
-# Output directories & test files
-out/
-out_*.svg
-out_*.png
-out_*.bmp
-out_*.zpl
-out_*.tspl
-out_*.ipl
+# Temporary Test Artifacts Directory
+temp_test_artifacts/
+dist_*
+out_*
+temp_*
+*.bmp
+*.png
+*.svg
+!assets/**/*.svg
+!label_80x200.svg
 
 # Build & Distribution
 build/
 dist/
 dist_out/
 *.spec
-out_test_encoders/
-out_test_raster/
-out_test_cli/
-out_test_processor/
-out_test_pdf/
 
 
 # Editor & History
