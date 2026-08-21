@@ -177,9 +177,13 @@ def svg_to_png(
         if not out_p.is_file():
             raise FileNotFoundError(f"Output PNG not created by resvg: {out_p}")
 
-        # If super-sampled, scale down to target width_px and height_px via configured downsampling filter (default: BOX)
+        # If super-sampled, scale down to target width_px and height_px via configured downsampling filter (default: NEAREST)
         if width_px is not None and height_px is not None:
+            # Re-open safely or load with ImageFile.LOAD_TRUNCATED_IMAGES enabled
+            from PIL import ImageFile
+            ImageFile.LOAD_TRUNCATED_IMAGES = True
             with Image.open(out_p) as rendered_img:
+                rendered_img.load()
                 if render_factor > 1 or rendered_img.size != (width_px, height_px):
                     filter_key = str(downsampling_filter).upper().strip()
                     resample_filter = RESAMPLING_FILTERS.get(filter_key, Image.Resampling.NEAREST)
