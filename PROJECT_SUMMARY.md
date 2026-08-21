@@ -1,4 +1,17 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **21-08-2026**: GUI Layout Optimization & Top Header Panel Anti-Clipping Fix:
+  - **Top Control Bar Grid Refactoring (`gui/components/control_panel.py`)**:
+    - Mengonversi tata letak 3 kelompok panel kontrol (`Source Inputs`, `Output, DPI, Rotation & Quality`, `Engine Actions`) dari `pack()` ke `grid()` responsif dengan pembobotan kolom yang terisolasi.
+    - Mengurangi lebar fixed kolom input path teks file dari `width=36` ke `width=24` (menggunakan dynamic scaling `sticky="ew"` dan `columnconfigure(1, weight=1)`).
+    - Memangkas padding kontainer (`padding=4`, `padx=2`, `pady=1`) dan ukuran tombol aksi agar seluruh 3 kelompok panel muat dengan presisi pada resolusi standar **1280px** tanpa terpotong (*zero clipping*).
+  - **Splitter Ratio & Panel Width Optimization (`gui/main_window.py`, `gui/components/json_inspector.py`)**:
+    - Mengonfigurasi rasio default pembagian panel kiri (**JSON Inspector**) dan panel kanan (**Print Preview**) ke proporsi **1 : 3** (~25% / 75%) dengan batas lebar awal ~320px–340px (`paned.sashpos(0, desired_pos)`).
+    - Menyesuaikan lebar kolom default Treeview di JSON Inspector (`#0`: 130px, `value`: 130px, `type`: 45px) agar pas di dalam kontainer 320px tanpa memicu horizontal overflow.
+  - **Pengujian & Binary Rebuild**:
+    - Verifikasi tata letak GUI pada resolusi jendela normal (1280x800) dan maximized (1920x1080) memastikan tombol aksi (`Send RAW to Printer`, `Save Export As...`) tampil penuh dan kanvas pratinjau mendominasi layar.
+    - Rebuild penuh standalone executable `dist/LabelPreviewApp.exe` dan `dist/label_engine.exe`.
+
+
 - **21-08-2026**: Restrukturisasi & Manajemen Folder Temporary Test Artifacts (`temp_test_artifacts/`):
   - **Pembersihan Root Directory**: Menghapus ratusan berkas gambar pengujian temporer (`*.bmp`, `*.png`, `*.svg`) dan berbagai folder output pengujian lama (`out_test_*`, `dist_*`, `temp_*`, `build/`) dari root direktori proyek.
   - **Sentralisasi Artefak Pengujian (`temp_test_artifacts/`)**:

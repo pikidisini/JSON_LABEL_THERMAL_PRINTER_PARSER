@@ -58,7 +58,7 @@ class MainWindow(tk.Tk):
         paned = ttk.PanedWindow(self, orient="horizontal")
         paned.grid(row=1, column=0, sticky="nsew", padx=6, pady=2)
 
-        # Left Panel: JSON Inspector
+        # Left Panel: JSON Inspector (weight 1, minsize=200)
         self.json_inspector = JSONInspectorWidget(
             paned,
             on_field_selected=self._on_json_field_selected,
@@ -66,10 +66,13 @@ class MainWindow(tk.Tk):
         )
         paned.add(self.json_inspector, weight=1)
 
-        # Middle Panel: Visual Raster Canvas
+        # Middle Panel: Visual Raster Canvas (weight 3, main focus area)
         self.raster_canvas = RasterCanvasWidget(paned)
         self.raster_canvas.on_canvas_element_clicked = self._on_canvas_element_clicked
         paned.add(self.raster_canvas, weight=3)
+
+        # Schedule initial divider position at ~320px
+        self.after(50, lambda: self._init_splitter_position(paned))
 
         # 3. Bottom Status & Log Bar
         status_bar = ttk.Frame(self)
@@ -85,6 +88,18 @@ class MainWindow(tk.Tk):
 
         self.progress_bar = ttk.Progressbar(status_bar, mode="indeterminate", length=160)
         self.progress_bar.grid(row=0, column=2, sticky="e", padx=4)
+
+    def _init_splitter_position(self, paned: ttk.PanedWindow):
+        """Sets initial splitter position to ~320px (constrained between 260px and 340px)
+        giving ~75-80% space for the main print preview canvas."""
+        try:
+            self.update_idletasks()
+            win_width = self.winfo_width()
+            desired_pos = min(340, max(260, int(win_width * 0.25)))
+            paned.sashpos(0, desired_pos)
+        except Exception:
+            pass
+
     def execute_render(self):
         json_path = Path(self.ctrl_panel.var_json_path.get())
         template_path = Path(self.ctrl_panel.var_template_path.get())

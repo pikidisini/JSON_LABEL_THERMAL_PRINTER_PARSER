@@ -11,13 +11,12 @@
    id="svg44"
    sodipodi:docname="label_80x200.svg"
    inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xml:space="preserve"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-  <defs
-     id="defs44" />
-  <sodipodi:namedview
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+     id="defs44" /><sodipodi:namedview
      id="namedview44"
      pagecolor="#ffffff"
      bordercolor="#000000"
@@ -28,36 +27,30 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      showguides="true"
-     inkscape:zoom="1.6613474"
-     inkscape:cx="324.1345"
-     inkscape:cy="140.54857"
+     inkscape:zoom="1.17475"
+     inkscape:cx="288.99766"
+     inkscape:cy="211.53437"
      inkscape:window-width="1920"
      inkscape:window-height="1009"
      inkscape:window-x="1912"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg44">
-    <sodipodi:guide
+     inkscape:current-layer="svg44"><sodipodi:guide
        position="103.19937,14.06707"
        orientation="0,-1"
        id="guide44"
-       inkscape:locked="false" />
-    <sodipodi:guide
+       inkscape:locked="false" /><sodipodi:guide
        position="103.04011,25.852183"
        orientation="1,0"
        id="guide45"
-       inkscape:locked="false" />
-  </sodipodi:namedview>
-  <!-- Kanvas Utama (Background Putih Absolut & Border presisi) -->
-  <rect
+       inkscape:locked="false" /></sodipodi:namedview><!-- Kanvas Utama (Background Putih Absolut & Border presisi) --><rect
      x="0"
      y="0"
      width="200"
      height="80"
      fill="#ffffff"
      stroke="none"
-     id="rect1" />
-  <rect
+     id="rect1" /><rect
      x="0.125"
      y="0.125"
      width="199.75"
@@ -65,55 +58,43 @@
      fill="none"
      stroke="#000000"
      stroke-width="0.25"
-     id="rect2" />
-  <!-- Garis Potong Vertikal (x=100) -->
-  <line
+     id="rect2" /><!-- Garis Potong Vertikal (x=100) --><line
      x1="100"
      y1="0"
      x2="100"
      y2="80"
      stroke="#000000"
      stroke-width="0.25"
-     id="line2" />
-  <!-- ================= LEFT PANEL (0 - 100 mm) ================= -->
-  <g
-     id="left-panel">
-    <!-- Header: ASTRIA & BOPP -->
-    <text
+     id="line2" /><!-- ================= LEFT PANEL (0 - 100 mm) ================= --><g
+     id="left-panel"><!-- Header: ASTRIA & BOPP --><text
        x="3"
        y="8"
        font-size="7"
        font-weight="bold"
        data-field="brand"
-       id="text2">{{brand}}</text>
-    <text
+       id="text2">{{brand}}</text><text
        x="97"
        y="8"
        font-size="7"
        font-weight="bold"
        text-anchor="end"
        data-field="type_film"
-       id="text3">{{type_film}}</text>
-    <line
+       id="text3">{{type_film}}</text><line
        x1="2"
        y1="10"
        x2="98"
        y2="10"
        stroke="#000000"
        stroke-width="0.375"
-       id="line3" />
-    <!-- Grade & Micron -->
-    <text
+       id="line3" /><!-- Grade & Micron --><text
        x="3"
        y="17"
        font-size="7"
        font-weight="bold"
        data-field="grade"
-       id="text4">{{grade}}</text>
-    <g
+       id="text4">{{grade}}</text><g
        data-when="has_micron"
-       id="g5">
-      <text
+       id="g5"><text
          x="97"
          y="17"
          font-size="3.5"
@@ -123,10 +104,7 @@
    data-field="thickness_micron"
    id="tspan4">{{thickness_micron}}</tspan> Mic / <tspan
    data-field="thickness_gauge"
-   id="tspan5">{{thickness_gauge}}</tspan> Ga</text>
-    </g>
-    <!-- Dimensi (Mm & Inch) -->
-    <text
+   id="tspan5">{{thickness_gauge}}</tspan> Ga</text></g><!-- Dimensi (Mm & Inch) --><text
        x="3"
        y="24"
        font-size="3.5"
@@ -135,8 +113,7 @@
    data-field="width_mm"
    id="tspan6">{{width_mm}}</tspan> mm   x   <tspan
    data-field="length_m"
-   id="tspan7">{{length_m}}</tspan> M</text>
-    <text
+   id="tspan7">{{length_m}}</tspan> M</text><text
        x="3"
        y="30"
        font-size="3.5"
@@ -145,53 +122,43 @@
    data-field="width_inch"
    id="tspan8">{{width_inch}}</tspan> Inch x   <tspan
    data-field="length_feet"
-   id="tspan9">{{length_feet}}</tspan> Feet</text>
-    <!-- Kolom Kiri: Treatment & Batch -->
-    <text
+   id="tspan9">{{length_feet}}</tspan> Feet</text><!-- Kolom Kiri: Treatment & Batch --><text
        x="3"
        y="40"
        font-size="2.8"
-       id="text10">INSIDE</text>
-    <text
+       id="text10">INSIDE</text><text
        x="18"
        y="40"
        font-size="2.8"
        id="text11">: <tspan
    data-field="treatment_inside"
-   id="tspan10">{{treatment_inside}}</tspan></text>
-    <text
+   id="tspan10">{{treatment_inside}}</tspan></text><text
        x="3"
        y="45"
        font-size="2.8"
-       id="text12">OUTSIDE</text>
-    <text
+       id="text12">OUTSIDE</text><text
        x="18"
        y="45"
        font-size="2.8"
        id="text13">: <tspan
    data-field="treatment_outside"
-   id="tspan12">{{treatment_outside}}</tspan></text>
-    <text
+   id="tspan12">{{treatment_outside}}</tspan></text><text
        x="3"
        y="50"
        font-size="2.8"
-       id="text14">Batch</text>
-    <text
+       id="text14">Batch</text><text
        x="18"
        y="50"
        font-size="2.8"
        font-weight="bold"
        id="text15">: <tspan
    data-field="batch_text"
-   id="tspan14">{{batch_text}}</tspan></text>
-    <!-- Kolom Kanan: NWEIGHT -->
-    <text
+   id="tspan14">{{batch_text}}</tspan></text><!-- Kolom Kanan: NWEIGHT --><text
        x="97"
        y="38"
        font-size="2.8"
        text-anchor="end"
-       id="text16">NWEIGHT</text>
-    <text
+       id="text16">NWEIGHT</text><text
        x="97"
        y="44"
        font-size="3.5"
@@ -199,8 +166,7 @@
        text-anchor="end"
        id="text17"><tspan
    data-field="net_weight_kg"
-   id="tspan16">{{net_weight_kg}}</tspan> Kg</text>
-    <text
+   id="tspan16">{{net_weight_kg}}</tspan> Kg</text><text
        x="97"
        y="50"
        font-size="3.5"
@@ -208,9 +174,7 @@
        text-anchor="end"
        id="text18"><tspan
    data-field="weight_lbs"
-   id="tspan17">{{weight_lbs}}</tspan> Lbs</text>
-    <!-- Barcode Kiri (Batch Barcode) -->
-    <rect
+   id="tspan17">{{weight_lbs}}</tspan> Lbs</text><!-- Barcode Kiri (Batch Barcode) --><rect
        id="rect_batch_barcode"
        data-barcode="batch_barcode"
        data-symbology="CODE128"
@@ -222,8 +186,7 @@
        fill="none"
        stroke="#000000"
        stroke-width="0.25"
-       inkscape:label="rect_batch_barcode" />
-    <text
+       inkscape:label="rect_batch_barcode" /><text
        id="text_batch_barcode"
        x="3.0927145"
        y="67.840744"
@@ -234,41 +197,33 @@
        style="text-align:start;text-anchor:start;-inkscape-font-specification:'Arial, DejaVu Sans, sans-serif, Normal';font-family:Arial, 'DejaVu Sans', sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:2.5px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000"
        inkscape:label="text_roll_barcode"><tspan
          sodipodi:role="line"
-         id="tspan45">{{roll_barcode}}</tspan></text>
-    <!-- Core & Used Before -->
-    <text
+         id="tspan45">{{roll_barcode}}</tspan></text><!-- Core & Used Before --><text
        x="60"
        y="62"
        font-size="2.2"
        text-anchor="middle"
-       id="text19">CORE</text>
-    <text
+       id="text19">CORE</text><text
        x="60"
        y="66"
        font-size="2.2"
        text-anchor="middle"
        id="text20"><tspan
          data-field="core_inch"
-         id="tspan19">{{core_inch}}</tspan></text>
-    <text
+         id="tspan19">{{core_inch}}</tspan></text><text
        x="85"
        y="62"
        font-size="2.2"
        text-anchor="middle"
-       id="text21">USED BEFORE</text>
-    <text
+       id="text21">USED BEFORE</text><text
        x="85"
        y="66"
        font-size="2.2"
        text-anchor="middle"
        id="text22"><tspan
          data-field="used_before"
-         id="tspan21">{{used_before}}</tspan></text>
-    <!-- Placeholder Logo Sertifikasi -->
-    <g
+         id="tspan21">{{used_before}}</tspan></text><!-- Placeholder Logo Sertifikasi --><g
        id="logo_halal"
-       data-when="has_halal">
-      <rect
+       data-when="has_halal"><rect
          x="3"
          y="71"
          width="22"
@@ -276,19 +231,15 @@
          fill="none"
          stroke="#000000"
          stroke-width="0.25"
-         id="rect22" />
-      <text
+         id="rect22" /><text
          x="14"
          y="75.5"
          font-size="2.2"
          font-weight="bold"
          text-anchor="middle"
-         id="text23">HALAL</text>
-    </g>
-    <g
+         id="text23">HALAL</text></g><g
        id="logo_iscc"
-       data-when="has_iscc">
-      <rect
+       data-when="has_iscc"><rect
          x="27"
          y="71"
          width="22"
@@ -296,29 +247,20 @@
          fill="none"
          stroke="#000000"
          stroke-width="0.25"
-         id="rect23" />
-      <text
+         id="rect23" /><text
          x="38"
          y="75.5"
          font-size="2.2"
          font-weight="bold"
          text-anchor="middle"
-         id="text24">ISCC</text>
-    </g>
-  </g>
-  <!-- ================= RIGHT PANEL (100 - 200 mm) ================= -->
-  <g
-     id="right-panel">
-    <!-- Tabel Splice -->
-    <g
+         id="text24">ISCC</text></g></g><!-- ================= RIGHT PANEL (100 - 200 mm) ================= --><g
+     id="right-panel"><!-- Tabel Splice --><g
        id="table_splice"
-       data-when="has_splice">
-      <text
+       data-when="has_splice"><text
          x="103"
          y="5"
          font-size="2.2"
-         id="text25">SPLICE AT FROM BEGINNING CORE SIDE</text>
-      <rect
+         id="text25">SPLICE AT FROM BEGINNING CORE SIDE</text><rect
          x="103"
          y="7"
          width="92"
@@ -326,111 +268,90 @@
          fill="none"
          stroke="#000000"
          stroke-width="0.25"
-         id="rect25" />
-      <line
+         id="rect25" /><line
          x1="103"
          y1="13"
          x2="195"
          y2="13"
          stroke="#000000"
          stroke-width="0.25"
-         id="line25" />
-      <!-- Garis Vertikal Tabel -->
-      <line
+         id="line25" /><!-- Garis Vertikal Tabel --><line
          x1="110"
          y1="7"
          x2="110"
          y2="19"
          stroke="#000000"
          stroke-width="0.25"
-         id="line26" />
-      <line
+         id="line26" /><line
          x1="145"
          y1="7"
          x2="145"
          y2="19"
          stroke="#000000"
          stroke-width="0.25"
-         id="line27" />
-      <line
+         id="line27" /><line
          x1="151"
          y1="7"
          x2="151"
          y2="19"
          stroke="#000000"
          stroke-width="0.25"
-         id="line28" />
-      <line
+         id="line28" /><line
          x1="185"
          y1="7"
          x2="185"
          y2="19"
          stroke="#000000"
          stroke-width="0.25"
-         id="line29" />
-      <!-- Baris 1 -->
-      <text
+         id="line29" /><!-- Baris 1 --><text
          x="104"
          y="11"
          font-size="2.2"
-         id="text29">1st</text>
-      <text
+         id="text29">1st</text><text
          x="143"
          y="11"
          font-size="2.2"
          text-anchor="end"
          data-field="splice_1_m"
-         id="text30">{{splice_1_m}}</text>
-      <text
+         id="text30">{{splice_1_m}}</text><text
          x="146"
          y="11"
          font-size="2.2"
-         id="text31">m</text>
-      <text
+         id="text31">m</text><text
          x="183"
          y="11"
          font-size="2.2"
          text-anchor="end"
          data-field="splice_1_feet"
-         id="text32">{{splice_1_feet}}</text>
-      <text
+         id="text32">{{splice_1_feet}}</text><text
          x="187"
          y="11"
          font-size="2.2"
-         id="text33">Feet</text>
-      <!-- Baris 2 -->
-      <text
+         id="text33">Feet</text><!-- Baris 2 --><text
          x="104"
          y="17"
          font-size="2.2"
-         id="text34">2nd</text>
-      <text
+         id="text34">2nd</text><text
          x="143"
          y="17"
          font-size="2.2"
          text-anchor="end"
          data-field="splice_2_m"
-         id="text35">{{splice_2_m}}</text>
-      <text
+         id="text35">{{splice_2_m}}</text><text
          x="146"
          y="17"
          font-size="2.2"
-         id="text36">m</text>
-      <text
+         id="text36">m</text><text
          x="183"
          y="17"
          font-size="2.2"
          text-anchor="end"
          data-field="splice_2_feet"
-         id="text37">{{splice_2_feet}}</text>
-      <text
+         id="text37">{{splice_2_feet}}</text><text
          x="187"
          y="17"
          font-size="2.2"
-         id="text38">Feet</text>
-    </g>
-    <!-- Slot QR Code -->
-    <rect
+         id="text38">Feet</text></g><!-- Slot QR Code --><rect
        id="rect_qr_payload"
        data-qr="qr_payload"
        x="105"
@@ -439,8 +360,7 @@
        height="16"
        fill="none"
        stroke="#000000"
-       stroke-width="0.25" />
-    <text
+       stroke-width="0.25" /><text
        id="text_qr_payload"
        x="113"
        y="43"
@@ -448,9 +368,7 @@
        fill="#000000"
        text-anchor="middle"
        data-code="qr_payload"
-       style="display:none">{{qr_payload}}</text>
-    <!-- Kotak Info Inner Core & Batch (Kanan Tengah) -->
-    <rect
+       style="display:none">{{qr_payload}}</text><!-- Kotak Info Inner Core & Batch (Kanan Tengah) --><rect
        x="125"
        y="25"
        width="70"
@@ -458,68 +376,55 @@
        fill="none"
        stroke="#000000"
        stroke-width="0.25"
-       id="rect38" />
-    <line
+       id="rect38" /><line
        x1="125"
        y1="31"
        x2="195"
        y2="31"
        stroke="#000000"
        stroke-width="0.25"
-       id="line38" />
-    <text
+       id="line38" /><text
        x="160"
        y="29.5"
        font-size="2.8"
        text-anchor="middle"
        data-field="batch_text"
-       id="text39">{{batch_text}}</text>
-    <text
+       id="text39">{{batch_text}}</text><text
        x="160"
        y="35"
        font-size="2.2"
        font-weight="bold"
        text-anchor="middle"
        data-field="inner_core"
-       id="text40">{{inner_core}}</text>
-    <text
+       id="text40">{{inner_core}}</text><text
        x="160"
        y="44.277748"
        font-size="2.8px"
        font-weight="bold"
        text-anchor="middle"
        data-field="roll_no"
-       id="text41">{{roll_no}}</text>
-    <!-- Batch Teks Kiri Bawah -->
-    <text
+       id="text41">{{roll_no}}</text><!-- Batch Teks Kiri Bawah --><text
        x="103"
        y="50"
        font-size="2.2"
        id="text42">Batch : <tspan
    data-field="batch_text"
-   id="tspan41">{{batch_text}}</tspan></text>
-    <!-- SO / ITEM -->
-    <g
+   id="tspan41">{{batch_text}}</tspan></text><!-- SO / ITEM --><g
        data-when="has_so_item"
-       id="g44">
-      <text
+       id="g44"><text
          x="190"
          y="47"
          font-size="2.2"
          text-anchor="end"
-         id="text43">SO/ITEM</text>
-      <text
+         id="text43">SO/ITEM</text><text
          x="190"
          y="51"
          font-size="2.2"
          text-anchor="end"
          data-field="so_item"
-         id="text44">{{so_item}}</text>
-    </g>
-    <!-- Barcode Kanan (Roll Barcode - Diperlebar jadi 92mm) -->
-    <rect
-       id="rect_batch_barcode"
-       data-barcode="batch_barcode"
+         id="text44">{{so_item}}</text></g><!-- Barcode Kanan (Roll Barcode - Diperlebar jadi 92mm) --><rect
+       id="rect_roll_barcode"
+       data-barcode="roll_barcode"
        data-symbology="CODE128"
        data-human-readable="false"
        x="102.9595"
@@ -529,15 +434,12 @@
        fill="none"
        stroke="#000000"
        stroke-width="0.168991"
-       inkscape:label="rect_batch_barcode" />
-    <text
-       id="text_roll_barcode"
+       inkscape:label="rect_batch_barcode" /><text
+       id="text1"
        x="103.13361"
        y="69.31852"
        font-size="2.5px"
        fill="#000000"
        text-anchor="middle"
        data-code="roll_barcode"
-       style="text-align:start;text-anchor:start">{{roll_barcode}}</text>
-  </g>
-</svg>
+       style="text-align:start;text-anchor:start">{{batch_barcode}}</text></g></svg>

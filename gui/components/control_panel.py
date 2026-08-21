@@ -128,82 +128,88 @@ class ControlPanelWidget(ttk.Frame):
         self.var_threshold.set(clamped)
 
     def _build_ui(self):
-        # Frame 1: File Pickers
-        files_frame = ttk.LabelFrame(self, text="Source Inputs", padding=6)
-        files_frame.pack(side="left", fill="both", expand=True, padx=4, pady=2)
+        # Configure responsive grid for the 3 control groups
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=0)
+        self.columnconfigure(2, weight=0)
+        self.rowconfigure(0, weight=1)
+
+        # Frame 1: File Pickers (compact width=24, expanding column 1)
+        files_frame = ttk.LabelFrame(self, text="Source Inputs", padding=4)
+        files_frame.grid(row=0, column=0, sticky="nsew", padx=2, pady=1)
 
         # JSON Selector
-        ttk.Label(files_frame, text="SAP JSON File:").grid(row=0, column=0, sticky="w", padx=2, pady=2)
-        ttk.Entry(files_frame, textvariable=self.var_json_path, width=36).grid(row=0, column=1, sticky="ew", padx=2, pady=2)
-        ttk.Button(files_frame, text="Browse...", width=10, command=self._browse_json).grid(row=0, column=2, padx=2, pady=2)
+        ttk.Label(files_frame, text="SAP JSON:").grid(row=0, column=0, sticky="w", padx=2, pady=1)
+        ttk.Entry(files_frame, textvariable=self.var_json_path, width=24).grid(row=0, column=1, sticky="ew", padx=2, pady=1)
+        ttk.Button(files_frame, text="Browse...", width=8, command=self._browse_json).grid(row=0, column=2, padx=2, pady=1)
 
         # SVG Selector
-        ttk.Label(files_frame, text="SVG Template:").grid(row=1, column=0, sticky="w", padx=2, pady=2)
-        ttk.Entry(files_frame, textvariable=self.var_template_path, width=36).grid(row=1, column=1, sticky="ew", padx=2, pady=2)
-        ttk.Button(files_frame, text="Browse...", width=10, command=self._browse_svg).grid(row=1, column=2, padx=2, pady=2)
+        ttk.Label(files_frame, text="SVG Tpl:").grid(row=1, column=0, sticky="w", padx=2, pady=1)
+        ttk.Entry(files_frame, textvariable=self.var_template_path, width=24).grid(row=1, column=1, sticky="ew", padx=2, pady=1)
+        ttk.Button(files_frame, text="Browse...", width=8, command=self._browse_svg).grid(row=1, column=2, padx=2, pady=1)
 
         files_frame.columnconfigure(1, weight=1)
 
         # Frame 2: Format, DPI, Rotation & Binarization Quality Settings
-        opts_frame = ttk.LabelFrame(self, text="Output, DPI, Rotation & Quality", padding=6)
-        opts_frame.pack(side="left", fill="y", padx=4, pady=2)
+        opts_frame = ttk.LabelFrame(self, text="Output, DPI, Rotation & Quality", padding=4)
+        opts_frame.grid(row=0, column=1, sticky="nsew", padx=2, pady=1)
 
         # Format Combobox
         fmt_container = ttk.Frame(opts_frame)
-        fmt_container.pack(side="left", padx=3, pady=0)
+        fmt_container.pack(side="left", padx=2, pady=0)
         ttk.Label(fmt_container, text="Format:").pack(side="top", anchor="w")
         cb_format = ttk.Combobox(
             fmt_container,
             textvariable=self.var_format,
             values=["all", "zpl", "tspl", "ipl", "pdf", "svg", "png", "bmp"],
             state="readonly",
-            width=8,
+            width=7,
         )
-        cb_format.pack(side="top", pady=2, fill="x")
+        cb_format.pack(side="top", pady=1, fill="x")
 
         # DPI Combobox
         dpi_container = ttk.Frame(opts_frame)
-        dpi_container.pack(side="left", padx=3, pady=0)
+        dpi_container.pack(side="left", padx=2, pady=0)
         ttk.Label(dpi_container, text="Printer DPI:").pack(side="top", anchor="w")
         cb_dpi = ttk.Combobox(
             dpi_container,
             textvariable=self.var_dpi,
             values=self.DPI_PRESETS,
             state="readonly",
-            width=16,
+            width=15,
         )
-        cb_dpi.pack(side="top", pady=2, fill="x")
+        cb_dpi.pack(side="top", pady=1, fill="x")
         cb_dpi.bind("<<ComboboxSelected>>", self._handle_dpi_selected)
         _ToolTip(cb_dpi, "Select thermal printhead resolution (203.2 / 300 / 600 DPI)")
 
         # Rotation Combobox
         rot_container = ttk.Frame(opts_frame)
-        rot_container.pack(side="left", padx=3, pady=0)
+        rot_container.pack(side="left", padx=2, pady=0)
         ttk.Label(rot_container, text="Rotation:").pack(side="top", anchor="w")
         cb_rot = ttk.Combobox(
             rot_container,
             textvariable=self.var_rotation,
             values=self.ROTATION_PRESETS,
             state="readonly",
-            width=8,
+            width=6,
         )
-        cb_rot.pack(side="top", pady=2, fill="x")
+        cb_rot.pack(side="top", pady=1, fill="x")
         cb_rot.bind("<<ComboboxSelected>>", self._handle_rotation_selected)
         _ToolTip(cb_rot, "Rotate image (0°, 90°, 180°, 270° CW) before 1-bit & printer encoding")
 
         # Threshold Spinbox + Auto Otsu Button
         thresh_container = ttk.Frame(opts_frame)
-        thresh_container.pack(side="left", padx=3, pady=0)
-        ttk.Label(thresh_container, text="Threshold (0-255):").pack(side="top", anchor="w")
+        thresh_container.pack(side="left", padx=2, pady=0)
+        ttk.Label(thresh_container, text="Threshold:").pack(side="top", anchor="w")
         thresh_sub = ttk.Frame(thresh_container)
-        thresh_sub.pack(side="top", pady=2, fill="x")
+        thresh_sub.pack(side="top", pady=1, fill="x")
         sp_thresh = ttk.Spinbox(
             thresh_sub,
             from_=0,
             to=255,
             increment=1,
             textvariable=self.var_threshold,
-            width=5,
+            width=4,
         )
         sp_thresh.pack(side="left", padx=(0, 2))
         _ToolTip(sp_thresh, "Monochrome binarization threshold (0-255). Lower = thinner strokes, Higher = bolder text")
@@ -219,19 +225,19 @@ class ControlPanelWidget(ttk.Frame):
 
         # Super-Sampling 2x Checkbox
         ss_container = ttk.Frame(opts_frame)
-        ss_container.pack(side="left", padx=3, pady=0)
+        ss_container.pack(side="left", padx=2, pady=0)
         ttk.Label(ss_container, text="Anti-Aliasing:").pack(side="top", anchor="w")
         chk_ss = ttk.Checkbutton(
             ss_container,
             text="2x SuperSample",
             variable=self.var_super_sample,
         )
-        chk_ss.pack(side="top", pady=4)
+        chk_ss.pack(side="top", pady=2)
         _ToolTip(chk_ss, "Render at 2x resolution and downscale with LANCZOS to smooth text outlines and borders")
 
         # Frame 3: Action Buttons
-        actions_frame = ttk.LabelFrame(self, text="Engine Actions", padding=6)
-        actions_frame.pack(side="left", fill="y", padx=4, pady=2)
+        actions_frame = ttk.LabelFrame(self, text="Engine Actions", padding=4)
+        actions_frame.grid(row=0, column=2, sticky="nsew", padx=2, pady=1)
 
         # "Render & Inspect" -> Primary action button (Blue accent)
         btn_render = tk.Button(
@@ -245,19 +251,19 @@ class ControlPanelWidget(ttk.Frame):
             disabledforeground="#CCCCCC",
             font=("Segoe UI", 9, "bold"),
             relief="flat",
-            padx=10,
-            pady=4,
+            padx=8,
+            pady=3,
             cursor="hand2",
         )
-        btn_render.pack(side="left", padx=4, pady=2)
+        btn_render.pack(side="left", padx=3, pady=2)
 
         # "Template Dry-Run" -> Neutral (default ttk style)
         btn_dry_run = ttk.Button(
             actions_frame,
-            text=" Template Dry-Run ",
+            text=" Dry-Run ",
             command=self._handle_dry_run,
         )
-        btn_dry_run.pack(side="left", padx=4, pady=2)
+        btn_dry_run.pack(side="left", padx=3, pady=2)
 
         # "Send RAW to Printer" -> Print/accent action button (Dark green)
         btn_print = tk.Button(
@@ -271,11 +277,11 @@ class ControlPanelWidget(ttk.Frame):
             disabledforeground="#CCCCCC",
             font=("Segoe UI", 9, "bold"),
             relief="flat",
-            padx=10,
-            pady=4,
+            padx=8,
+            pady=3,
             cursor="hand2",
         )
-        btn_print.pack(side="left", padx=4, pady=2)
+        btn_print.pack(side="left", padx=3, pady=2)
 
         # "Save Export As..." -> Neutral blue accent action button
         btn_export = tk.Button(
@@ -289,11 +295,11 @@ class ControlPanelWidget(ttk.Frame):
             disabledforeground="#CCCCCC",
             font=("Segoe UI", 9, "bold"),
             relief="flat",
-            padx=10,
-            pady=4,
+            padx=8,
+            pady=3,
             cursor="hand2",
         )
-        btn_export.pack(side="left", padx=4, pady=2)
+        btn_export.pack(side="left", padx=3, pady=2)
         _ToolTip(btn_export, "Simpan file hasil render (SVG/PNG/BMP/ZPL/TSPL/IPL) ke folder tujuan")
 
     def _handle_dpi_selected(self, _event=None):

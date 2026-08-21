@@ -80,9 +80,9 @@ class JSONInspectorWidget(ttk.Frame):
         self.tree.heading("value", text="Value", anchor="w")
         self.tree.heading("type", text="Type", anchor="center")
 
-        self.tree.column("#0", width=160, minwidth=100)
-        self.tree.column("value", width=180, minwidth=100)
-        self.tree.column("type", width=60, minwidth=40, anchor="center")
+        self.tree.column("#0", width=130, minwidth=70)
+        self.tree.column("value", width=130, minwidth=60)
+        self.tree.column("type", width=45, minwidth=35, anchor="center")
         # Double-click to inline edit value column
         self.tree.bind("<Double-1>", self._on_double_click)
         self.tree.bind("<<TreeviewSelect>>", self._on_tree_select)
