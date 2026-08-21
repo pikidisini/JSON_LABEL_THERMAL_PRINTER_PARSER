@@ -10,6 +10,8 @@ from tkinter import ttk, messagebox, filedialog
 
 from gui.worker import RenderWorker
 from gui.components import JSONInspectorWidget, RasterCanvasWidget, ControlPanelWidget, PrintSenderDialog
+from engine.binding_map import SVGInspectionEngine
+
 
 
 class MainWindow(tk.Tk):
@@ -28,6 +30,10 @@ class MainWindow(tk.Tk):
         self.temp_out_dir = self.app_root / "out"
 
         self.last_results: Dict[str, Path] = {}
+        self.inspection_engine = SVGInspectionEngine()
+        self._current_template_content = ""
+        self._debounce_timer: Optional[str] = None
+
 
         self._build_ui()
         self._set_defaults()
@@ -43,6 +49,8 @@ class MainWindow(tk.Tk):
             on_dry_run_clicked=self.execute_dry_run,
             on_print_clicked=self.open_print_dialog,
             on_export_clicked=self.export_files,
+            on_dpi_changed=self._on_dpi_changed,
+            on_rotation_changed=self._on_rotation_changed,
         )
         self.ctrl_panel.grid(row=0, column=0, sticky="ew", padx=6, pady=4)
 
@@ -51,11 +59,16 @@ class MainWindow(tk.Tk):
         paned.grid(row=1, column=0, sticky="nsew", padx=6, pady=2)
 
         # Left Panel: JSON Inspector
-        self.json_inspector = JSONInspectorWidget(paned)
+        self.json_inspector = JSONInspectorWidget(
+            paned,
+            on_field_selected=self._on_json_field_selected,
+            on_field_changed=self._on_json_field_changed,
+        )
         paned.add(self.json_inspector, weight=1)
 
         # Middle Panel: Visual Raster Canvas
         self.raster_canvas = RasterCanvasWidget(paned)
+        self.raster_canvas.on_canvas_element_clicked = self._on_canvas_element_clicked
         paned.add(self.raster_canvas, weight=3)
 
         # 3. Bottom Status & Log Bar
@@ -71,10 +84,15 @@ class MainWindow(tk.Tk):
         self.lbl_status.grid(row=0, column=0, sticky="w")
 
         self.progress_bar = ttk.Progressbar(status_bar, mode="indeterminate", length=160)
+        self.progress_bar.grid(row=0, column=2, sticky="e", padx=4)
     def execute_render(self):
         json_path = Path(self.ctrl_panel.var_json_path.get())
         template_path = Path(self.ctrl_panel.var_template_path.get())
         target_format = self.ctrl_panel.var_format.get()
+        dpi_value = self.ctrl_panel.get_dpi()
+        rotation_val = self.ctrl_panel.get_rotation()
+        thresh_val = self.ctrl_panel.get_binarization_threshold()
+        ss_factor = self.ctrl_panel.get_super_sample_factor()
 
         if not json_path.is_file():
             messagebox.showerror("Error", f"JSON file does not exist: {json_path}")
@@ -83,7 +101,15 @@ class MainWindow(tk.Tk):
             messagebox.showerror("Error", f"SVG template file does not exist: {template_path}")
             return
 
-        self._start_render_thread(json_path, template_path, target_format)
+        self._start_render_thread(
+            json_path,
+            template_path,
+            target_format,
+            dpi=dpi_value,
+            rotation=rotation_val,
+            threshold=thresh_val,
+            super_sample_factor=ss_factor,
+        )
 
     def execute_dry_run(self):
         template_path = Path(self.ctrl_panel.var_template_path.get())
@@ -95,11 +121,36 @@ class MainWindow(tk.Tk):
             return
 
         self.ctrl_panel.var_json_path.set(str(self.default_sample_json.resolve()))
-        self._start_render_thread(self.default_sample_json, template_path, "all")
+        dpi_value = self.ctrl_panel.get_dpi()
+        rotation_val = self.ctrl_panel.get_rotation()
+        thresh_val = self.ctrl_panel.get_binarization_threshold()
+        ss_factor = self.ctrl_panel.get_super_sample_factor()
+        self._start_render_thread(
+            self.default_sample_json,
+            template_path,
+            "all",
+            dpi=dpi_value,
+            rotation=rotation_val,
+            threshold=thresh_val,
+            super_sample_factor=ss_factor,
+        )
 
-    def _start_render_thread(self, json_path: Path, template_path: Path, fmt: str):
+    def _start_render_thread(
+        self,
+        json_path: Path,
+        template_path: Path,
+        fmt: str,
+        dpi: float = 203.2,
+        rotation: int = 0,
+        threshold: int = 128,
+        super_sample_factor: int = 2,
+    ):
+        self._current_render_dpi = dpi
+        self._current_render_rotation = rotation
         self.progress_bar.start(10)
-        self.set_status("Rendering label & generating 1-bit bitmap...")
+        self.set_status(
+            f"Rendering label @ {dpi} DPI (Rotation: {rotation}°, Threshold: {threshold}, SuperSample: {super_sample_factor}x)..."
+        )
 
         worker = RenderWorker(
             parent=self,
@@ -109,6 +160,10 @@ class MainWindow(tk.Tk):
             fmt=fmt,
             on_success=self._on_render_success,
             on_error=self._on_render_error,
+            dpi=dpi,
+            rotation=rotation,
+            binarization_threshold=threshold,
+            super_sample_factor=super_sample_factor,
         )
         worker.start()
 
@@ -121,14 +176,108 @@ class MainWindow(tk.Tk):
         except Exception as e:
             print(f"Warning: failed to load JSON into inspector: {e}")
 
+        # Extract & configure SVG interactive bounding boxes using current DPI and Rotation
+        svg_path = results.get("svg")
+        template_file = Path(self.ctrl_panel.var_template_path.get())
+        current_dpi = getattr(self, "_current_render_dpi", 203.2)
+        current_rot = getattr(self, "_current_render_rotation", 0)
+        raw_w_px = int(round((200.0 / 25.4) * current_dpi))
+        target_w_px = ((raw_w_px + 7) // 8) * 8
+        target_h_px = int(round((80.0 / 25.4) * current_dpi))
+
+        if svg_path and svg_path.is_file() and template_file.is_file():
+            try:
+                self._current_template_content = template_file.read_text(encoding="utf-8")
+                bboxes = self.inspection_engine.build_inspection_map(
+                    svg_content=self._current_template_content,
+                    rendered_svg_path=svg_path,
+                    target_width_px=target_w_px,
+                    target_height_px=target_h_px,
+                    dpi=current_dpi,
+                    rotation=current_rot,
+                )
+                self.raster_canvas.set_bounding_boxes(bboxes)
+            except Exception as e:
+                print(f"Warning: failed to build inspection map: {e}")
+
         png_path = results.get("png")
         if png_path and png_path.is_file():
-            self.raster_canvas.load_image(png_path)
+            self.raster_canvas.load_image(png_path, dpi=current_dpi)
         else:
             self.raster_canvas.show_error("❌ Failed to render preview image (preview.png not found)")
 
         fmt_list = ", ".join([f.upper() for f in results.keys()])
-        self.set_status(f"[OK] Label rendered successfully! Generated: {fmt_list}")
+        self.set_status(f"[OK] Label rendered successfully @ {current_dpi} DPI (Rotation: {current_rot}°)! Generated: {fmt_list}")
+
+    def _on_json_field_selected(self, json_path: str):
+        """Dispatched when user clicks a row in the JSON Inspector tree."""
+        self.raster_canvas.highlight_path(json_path)
+        self.set_status(f"Inspecting field: {json_path}")
+
+    def _on_canvas_element_clicked(self, json_path: str):
+        """Dispatched when user clicks a vector bounding box on the Visual Canvas."""
+        matched = self.json_inspector.select_path(json_path)
+        if matched:
+            self.set_status(f"Selected JSON node from canvas click: {json_path}")
+        else:
+            self.set_status(f"Clicked element mapped to: {json_path} (Node not found in current JSON view)")
+
+    def _on_json_field_changed(self, json_path: str, new_value: str, full_data: Dict):
+        """Dispatched when user double-clicks and edits a value in the JSON tree."""
+        self.set_status(f"Updated {json_path} = '{new_value}'. Re-rendering preview...")
+        # Debounce live re-render by 350ms
+        if self._debounce_timer is not None:
+            self.after_cancel(self._debounce_timer)
+        self._debounce_timer = self.after(350, self._perform_live_update)
+
+    def _on_dpi_changed(self, new_dpi: float):
+        """Dispatched when user selects a different DPI in the Control Panel."""
+        self.set_status(f"DPI changed to {new_dpi}. Re-rendering preview...")
+        if self._debounce_timer is not None:
+            self.after_cancel(self._debounce_timer)
+        self._debounce_timer = self.after(200, self._perform_live_update)
+
+    def _on_rotation_changed(self, new_rotation: int):
+        """Dispatched when user selects a different rotation angle in the Control Panel."""
+        self.set_status(f"Rotation changed to {new_rotation}°. Re-rendering preview...")
+        if self._debounce_timer is not None:
+            self.after_cancel(self._debounce_timer)
+        self._debounce_timer = self.after(200, self._perform_live_update)
+
+    def _perform_live_update(self):
+        """Saves current JSON data to temp file and triggers asynchronous render with selected DPI and rotation."""
+        self._debounce_timer = None
+        data = self.json_inspector.get_data()
+        if not data:
+            # Fallback to source JSON if inspector is empty
+            src_json = Path(self.ctrl_panel.var_json_path.get())
+            if src_json.is_file():
+                import json
+                try:
+                    with open(src_json, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                except Exception:
+                    return
+            else:
+                return
+
+        temp_json = self.temp_out_dir / "temp_inspect.json"
+        temp_json.parent.mkdir(parents=True, exist_ok=True)
+        import json
+        with open(temp_json, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        template_path = Path(self.ctrl_panel.var_template_path.get())
+        if template_path.is_file():
+            dpi_val = self.ctrl_panel.get_dpi()
+            rot_val = self.ctrl_panel.get_rotation()
+            self._start_render_thread(
+                temp_json,
+                template_path,
+                self.ctrl_panel.var_format.get(),
+                dpi=dpi_val,
+                rotation=rot_val,
+            )
 
     def _on_render_error(self, err_msg: str):
         self.progress_bar.stop()
@@ -145,8 +294,6 @@ class MainWindow(tk.Tk):
 
         PrintSenderDialog(self, self.last_results)
 
-        self.progress_bar.grid(row=0, column=2, sticky="e", padx=4)
-
     def export_files(self):
         """Exports currently rendered output file(s) to a user-selected destination."""
         if not self.last_results:
@@ -160,6 +307,7 @@ class MainWindow(tk.Tk):
 
         # Format map for specific extensions
         format_filetypes = {
+            "pdf": ("PDF Document", "*.pdf"),
             "png": ("PNG Image", "*.png"),
             "bmp": ("1-Bit Monochrome Bitmap", "*.bmp"),
             "svg": ("SVG Scalable Vector", "*.svg"),

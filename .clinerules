@@ -1,6 +1,35 @@
-# Git Automation Rules
-- Setelah menyelesaikan setiap perbaikan bug, penambahan fitur, atau tugas utama:
-  1. Jalankan `git status` untuk memeriksa perubahan.
-  2. Lakukan `git add .` untuk file yang relevan.
-  3. Buat `git commit` dengan pesan commit konvensional yang jelas (contoh: `feat: add user login`).
-  4. Lakukan `git push origin main` secara otomatis.
+# Build Automation Rules
+- Setiap kali Anda selesai melakukan perubahan kode, perbaikan bug, atau penambahan fitur yang memengaruhi logic/UI aplikasi:
+  1. Anda HARUS selalu me-rebuild file eksekutabel berikut agar biner terbaru selalu siap pakai:
+     - `label_engine.exe`
+     - `LabelPreviewApp.exe`
+  2. Gunakan perintah build/compiler yang sesuai di proyek ini (misal: PyInstaller, Nuitka, atau build script yang ada).
+  3. Pastikan proses rebuild dan seluruh unit test (jika ada) berhasil 100% tanpa error sebelum melanjutkan ke proses Git/Commit.
+
+# Git & Branch Management Rules
+- **Base Branch & Proteksi**:
+  - DILARANG melakukan `git push` langsung ke branch `main`, `master`, atau `dev`.
+  - Seluruh *feature branch* atau *bugfix branch* HARUS bersumber (*checkout*) dari branch `dev`.
+  - Jika saat ini sedang di `main` atau `dev`, buat branch baru terlebih dahulu:
+    `git checkout -b feature/deskripsi-singkat dev` (atau `fix/deskripsi-singkat dev`).
+
+# AI Code Review & Commit Rules
+- **Self-Review Sebelum Commit**:
+  1. Jalankan `git status` dan `git diff` untuk memeriksa seluruh file yang berubah.
+  2. Lakukan *self-review* internal: pastikan tidak ada syntax error, bug regresi, file sensitif/temporary yang lolos, atau masalah kodingan lainnya.
+  3. Lakukan `git add .` untuk mengumpulkan file yang relevan (pastikan file `.exe` terbaru ikut di-stage jika di-track Git).
+  4. Buat `git commit` dengan pesan standar konvensional yang jelas (contoh: `feat: add dynamic dpi selector` atau `fix: resolve bounding box alignment`).
+
+# Pull Request & Auto-Merge Rules
+- **Workflow Setelah Commit & Push**:
+  1. Push branch lokal ke remote repository:
+     `git push -u origin <nama-feature-branch>`
+  2. Gunakan GitHub CLI (`gh`) untuk membuat Pull Request (PR) ke branch `dev`:
+     `gh pr create --base dev --title "<pesan-commit-utama>" --body "<rangkuman-perubahan-kode>"`
+  3. Lakukan auto-merge ke branch `dev` dan hapus feature branch yang telah selesai:
+     `gh pr merge --merge --delete-branch`
+  4. Kembalikan kondisi lokal ke branch `dev` dan lakukan pengunduhan data terbaru:
+     `git checkout dev && git pull origin dev`
+  5. Berikan laporan ringkas kepada pengguna bahwa fitur telah sukses di-build, di-review, di-push, dan di-merge ke branch `dev`.
+
+

@@ -31,6 +31,10 @@ dist_out/
 *.spec
 out_test_encoders/
 out_test_raster/
+out_test_cli/
+out_test_processor/
+out_test_pdf/
+
 
 # Editor & History
 .history/

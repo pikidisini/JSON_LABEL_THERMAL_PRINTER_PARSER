@@ -30,6 +30,10 @@ class RenderWorker:
         fmt: str,
         on_success: Callable[[Path, Dict[str, Path]], None],
         on_error: Callable[[str], None],
+        dpi: float = 203.2,
+        rotation: int = 0,
+        binarization_threshold: int = 128,
+        super_sample_factor: int = 2,
     ):
         self.parent = parent
         self.json_path = json_path
@@ -38,6 +42,10 @@ class RenderWorker:
         self.fmt = fmt
         self.on_success = on_success
         self.on_error = on_error
+        self.dpi = dpi
+        self.rotation = rotation
+        self.binarization_threshold = binarization_threshold
+        self.super_sample_factor = super_sample_factor
         self._thread: Optional[threading.Thread] = None
 
     def start(self) -> None:
@@ -53,6 +61,10 @@ class RenderWorker:
                 template_source=self.template_path,
                 out_dir=self.out_dir,
                 formats=self.fmt,
+                dpi=self.dpi,
+                rotation=self.rotation,
+                binarization_threshold=self.binarization_threshold,
+                super_sample_factor=self.super_sample_factor,
             )
             # Dispatch success callback on UI thread
             self.parent.after(0, self.on_success, self.json_path, results)

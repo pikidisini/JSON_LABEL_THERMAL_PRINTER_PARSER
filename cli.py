@@ -2,7 +2,7 @@
 CLI Entrypoint for Centralized Factory Label Printing Engine.
 
 Usage:
-    python cli.py --json <path_to_json> --template <path_to_svg> [--out-dir <path>] [--format all|zpl|tspl|ipl|png|bmp] [--dpi 203.2]
+    python cli.py --json <path_to_json> --template <path_to_svg> [--out-dir <path>] [--format all|zpl|tspl|ipl|pdf|png|bmp|svg] [--dpi 203.2]
 """
 
 import argparse
@@ -29,7 +29,7 @@ def main() -> int:
         "--format",
         required=False,
         default="all",
-        choices=["all", "zpl", "tspl", "ipl", "png", "bmp", "svg"],
+        choices=["all", "zpl", "tspl", "ipl", "pdf", "png", "bmp", "svg"],
         help="Output format to generate (default: all)",
     )
     parser.add_argument(
@@ -38,6 +38,36 @@ def main() -> int:
         type=float,
         default=203.2,
         help="Thermal printer resolution DPI (default: 203.2 = 8 dots/mm)",
+    )
+    parser.add_argument(
+        "--rotation",
+        required=False,
+        type=int,
+        default=0,
+        choices=[0, 90, 180, 270],
+        help="Image rotation angle in degrees (default: 0 = normal)",
+    )
+    parser.add_argument(
+        "--threshold",
+        required=False,
+        type=int,
+        default=None,
+        help="Monochrome 1-bit binarization threshold [0..255] (default: None, auto-calculated via Otsu)",
+    )
+    parser.add_argument(
+        "--super-sample",
+        required=False,
+        type=int,
+        default=2,
+        help="Vector anti-aliasing super-sampling factor (default: 2)",
+    )
+    parser.add_argument(
+        "--filter",
+        required=False,
+        type=str,
+        default="NEAREST",
+        choices=["NEAREST", "BOX", "LANCZOS", "BILINEAR", "BICUBIC", "HAMMING"],
+        help="Downsampling resampling filter for super-sampling (default: NEAREST)",
     )
 
     args = parser.parse_args()
@@ -53,8 +83,10 @@ def main() -> int:
             out_dir=out_dir,
             formats=args.format,
             dpi=args.dpi,
-            width_px=1600,
-            height_px=640,
+            rotation=args.rotation,
+            binarization_threshold=args.threshold,
+            super_sample_factor=args.super_sample,
+            downsampling_filter=args.filter,
         )
 
         print("[OK] Label processed successfully. Generated files:")

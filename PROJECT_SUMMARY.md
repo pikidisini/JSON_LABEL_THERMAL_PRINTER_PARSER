@@ -1,4 +1,124 @@
 # Centralized Factory Label Printing System (3-Layer Architecture)
+- **21-08-2026**: Implementasi Otsu's Dynamic Thresholding & NEAREST Resampling Filter untuk Output Monokrom 1-Bit BMP:
+  - **NEAREST Downsampling Resampling Filter (`engine/rasterizer.py`, `engine/processor.py`)**:
+    - Mengonfigurasi filter downsampling default menjadi **`NEAREST`** untuk pipeline binarisasi monokrom 1-bit BMP dan printer payload.
+    - Menghilangkan degradasi blur anti-aliasing dan piksel transisi abu-abu (*intermediate grayscale edge pixels*) yang memicu artefak takik (*notches*), distorsi modul non-ortogonal, dan *diagonal bleeding* pada modul QR code serta 1D barcode.
+  - **Otsu Global Thresholding Auto-Calculation (`engine/rasterizer.py`, `engine/processor.py`)**:
+    - Memperbaiki `calculate_otsu_threshold()` dengan algoritma pencarian titik tengah variansi maksimum (*midpoint of maximum variance plateau*) sehingga stabil dan akurat pada citra bernilai biner murni (0 dan 255) maupun citra multi-level grayscale.
+    - Mengintegrasikan deteksi Otsu otomatis pada `process_label()` apabila `binarization_threshold` bernilai `None`, menggantikan ambang statis hardcoded `128`.
+  - **Dukungan CLI Engine (`cli.py`)**:
+    - Memperbarui default argumen `--threshold` menjadi `None` (auto-calculate via Otsu) dan default `--filter` menjadi `NEAREST`.
+  - **Pengujian Unit Test (`tests/test_rasterizer.py`, `tests/test_processor.py`)**:
+    - Memperbarui dan memverifikasi unit test suite untuk menguji Otsu thresholding dan filter `NEAREST`. Seluruh unit test lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh standalone executables `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
+
+- **20-08-2026**: Peningkatan Kualitas Vektor Barcode & QR Code (Path Unification, `crispEdges`, dan `BOX` Downsampling Filter):
+  - **SVG Path Unification & Run-Length Encoding (`engine/barcode_generator.py`)**:
+    - Memperbarui generator Barcode 1D (`create_barcode_svg_group`) dan QR Code 2D (`create_qr_svg_group`) untuk mengonsolidasikan ratusan elemen individual `<rect>` menjadi satu elemen SVG `<path>` terpadu dengan pengkodean *horizontal run-length encoding* (`M x y H x1 V y1 H x Z`).
+    - Menyematkan atribut `shape-rendering="crispEdges"` pada elemen `<path>` untuk mematikan anti-aliasing sub-piksel di level resvg renderer, mencegah *seam artifacts* (garis tipis semu antar modul) dan mengurangi ukuran DOM SVG lebih dari 75%.
+  - **Configurable Downsampling Resampling Filter (`engine/rasterizer.py`, `engine/processor.py`)**:
+    - Menambahkan parameter `downsampling_filter` pada `svg_to_png()` dan `process_label()` (opsi: `BOX`, `LANCZOS`, `NEAREST`, `BILINEAR`, `BICUBIC`, `HAMMING`) dengan nilai default **`BOX`**.
+    - Filter `BOX` menghitung rata-rata area kotak geometris (*area averaging*) secara murni tanpa *sinc ringing* atau *pixel dilation* yang sebelumnya terjadi pada `LANCZOS`, menghasilkan tepi modul QR/Barcode yang tajam dan presisi pada grid dot fisik (203.2 DPI) dengan tipografi teks yang tetap terbaca bersih.
+  - **Dukungan CLI Engine (`cli.py`)**: Menambahkan argumen `--filter {BOX,LANCZOS,NEAREST,BILINEAR,BICUBIC,HAMMING}` dengan default `BOX`.
+  - **Pengujian Unit Test (`tests/test_barcode_generator.py`, `tests/test_rasterizer.py`)**:
+    - Memperbarui pengujian `test_create_barcode_svg_group` dan `test_create_qr_svg_group` untuk memvalidasi elemen `<path>` dan atribut `shape-rendering="crispEdges"`.
+    - Menambahkan pengujian `test_downsampling_filter_options` pada `tests/test_rasterizer.py` untuk memverifikasi konsistensi rendering filter `BOX`, `LANCZOS`, dan `NEAREST`. Seluruh suite unit test lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh standalone executables `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
+- **20-08-2026**: Peningkatan Kualitas Render 1-Bit BMP (Anti-Aliasing Super-Sampling & Dynamic Binarization Threshold):
+  - **Super-Sampling Vector Rendering (`engine/rasterizer.py`)**: Menambahkan parameter `super_sample_factor` (default $2\times$) pada fungsi `svg_to_png()`. Resvg merender gambar pada resolusi tinggi ($2\times$ ukuran target) lalu dilakukan downscaling kembali ke dimensi target melalui algoritma resampling Pillow `LANCZOS`. Hasilnya menghasilkan kontur teks dan garis border yang halus tanpa artefak bergerigi (*jagged text/broken borders*).
+  - **Otsu Global Thresholding Auto-Detection (`engine/rasterizer.py`)**: Mengimplementasikan `calculate_otsu_threshold(image)` yang menghitung ambang batas pemisahan biner optimal $[0..255]$ dengan memaksimalkan variansi antar-kelas (*inter-class variance*) histogram citra.
+  - **Strict Monochrome Purity (No Dithering)**: Tetap mempertahankan binarisasi ketat tanpa dithering (Floyd-Steinberg/Ordered Dithering dilarang keras) untuk menjaga integritas garis barcode 1D dan modul QR code agar 100% terbaca oleh industrial barcode scanner.
+  - **Integrasi Pipeline & Parameter Forwarding (`engine/processor.py`)**: Memperbarui `process_label()` untuk menerima `binarization_threshold` (default `128`) dan `super_sample_factor` (default `2`), meneruskannya ke `svg_to_png()` dan `png_to_1bit_monochrome()`.
+  - **GUI Controls & Auto Threshold (`gui/components/control_panel.py`, `gui/worker.py`, `gui/main_window.py`)**:
+    - Menambahkan kontrol Spinbox interaktif `Threshold (0-255)` dengan default `128`.
+    - Menambahkan tombol `Auto` (Otsu's Method) yang secara otomatis mendeteksi threshold optimal dan me-render ulang kanvas secara real-time.
+    - Menambahkan checkbox `2x SuperSample` untuk mengaktifkan/menonaktifkan anti-aliasing.
+    - Meneruskan konfigurasi threshold dan super-sample melalui background worker thread `RenderWorker`.
+  - **Dukungan CLI Engine (`cli.py`)**: Menambahkan opsi `--threshold <int 0-255>` (default `128`) dan `--super-sample <int>` (default `2`).
+  - **Pengujian Unit Test (`tests/test_rasterizer.py`)**: Menambahkan `test_super_sampling_and_otsu_threshold` untuk memverifikasi akurasi super-sampling $2\times$, kalkulasi Otsu threshold, dan kemurnian monokrom biner (`extrema == (0, 255)`). Seluruh unit test suite berhasil lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh standalone executables `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
+- **20-08-2026**: Perbaikan Bug: Physical Printout Shift / Cut-off Issue Post-Rotation (ZPL & TSPL Media Headers):
+  - **Akar Masalah**: Pada saat gambar label dirotasi ($90^\circ$ atau $270^\circ$), dimensi piksel tertukar ($W \times H \rightarrow H \times W$), namun ZPL encoder sebelumnya tidak mengirimkan header print width (`^PW`) dan label length (`^LL`), menyebabkan buffer printhead printer Zebra berasumsi pada lebar media default lama yang memicu pergeseran offset horizontal (*horizontal shift*) ke kanan dan pemotongan konten (*clipping*).
+  - **ZPL Header Update (`engine/printer_encoders/zpl_encoder.py`)**: Memperbarui encoder ZPL agar menerima dimensi fisik efektif (`width_mm`, `height_mm`) dan selalu menyematkan perintah `^PW<width_in_dots>` serta `^LL<height_in_dots>` di awal payload `^XA` sebelum field grafik `^FO0,0^GFA,...`.
+  - **Pipeline Stream Alignment (`engine/processor.py`)**: Meneruskan `effective_width_mm` dan `effective_height_mm` yang telah disesuaikan pasca-rotasi ke `encode_zpl()` serta memvalidasi keselarasan koordinat anchor top-left `^FO0,0`.
+  - **Pengujian Unit Test (`tests/test_encoders.py`)**: Menambahkan pengujian `test_rotated_encoders_headers` untuk memverifikasi bahwa rotasi $90^\circ$ ($640\times1600\text{ px}$) menghasilkan ZPL dengan `^PW640` & `^LL1600`, TSPL dengan `SIZE 80.0 mm,200.0 mm`, dan IPL dengan field definition `w640;h1600`. Seluruh unit test suite lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh standalone executables `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
+- **20-08-2026**: Penambahan Fitur Image Rotation Selector (`0°`, `90°`, `180°`, `270°` Clockwise):
+  - **Fungsi Rotasi Gambar (`engine/rasterizer.py`)**: Mengimplementasikan `rotate_image_cw(image, angle)` menggunakan Pillow `Image.rotate(-angle, expand=True)` sehingga pergantian dimensi kanvas (misal $1600\times640 \rightarrow 640\times1600\text{ px}$ pada 90°/270°) berjalan mulus tanpa clipping tepi dan latar belakang diisi warna putih bersih.
+  - **Pipeline Transformation & 8-Bit Alignment (`engine/processor.py`)**: Mengintegrasikan parameter `rotation` (0, 90, 180, 270) pada `process_label()` tepat setelah tahap rasterisasi SVG dan sebelum konversi monokrom 1-bit / encoding payload printer (ZPL, TSPL, IPL, PDF, BMP). Dilengkapi penyesuaian otomatis dimensi fisik `effective_width_mm` dan `effective_height_mm` serta 8-bit row padding boundary.
+  - **Transformasi Koordinat Bounding Box (`engine/binding_map.py`)**: Mengimplementasikan `transform_bbox_by_rotation(bbox, rotation_angle, orig_width_px, orig_height_px)` di `SVGInspectionEngine` sehingga kotak sorot interaktif dan klik selektor visual di kanvas GUI sejajar secara matematis dengan gambar berotasi pada seluruh sudut (90° CW: $(H - y - h, x, h, w)$, 180° CW: $(W - x - w, H - y - h, w, h)$, 270° CW: $(y, W - x - w, h, w)$).
+  - **Dukungan UI Control Panel & Thread Worker (`gui/components/control_panel.py`, `gui/worker.py`, `gui/main_window.py`)**: Menambahkan combobox rotasi (`0°`, `90°`, `180°`, `270°`), metode `get_rotation()`, debounced live re-render saat sudut rotasi diubah, serta forwarding parameter ke thread worker.
+  - **Dukungan CLI (`cli.py`)**: Menambahkan opsi `--rotation {0,90,180,270}` pada CLI headless engine.
+  - **Pengujian Unit Test**: Menambahkan unit test di `tests/test_rasterizer.py`, `tests/test_processor.py`, dan `tests/test_coordinate_alignment.py` untuk menguji dimensi rotasi gambar, seluruh encoder output, transformasi BBox, dan preset UI. Seluruh suite pengujian lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh binary PyInstaller `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
+- **20-08-2026**: Penambahan Fitur Ekspor PDF (1-Bit Monochrome Compressed PDF Document):
+  - **Encoder PDF (`engine/printer_encoders/pdf_encoder.py`)**: Membuat modul encoder `encode_pdf(image_source, output_pdf_path, dpi, width_mm, height_mm)` yang mengemas bitmap monokrom 1-bit ke dalam dokumen PDF single-page dengan kompresi lossless CCITT Group 4 / Flate (resolusi dan ukuran fisik label $200\text{ mm} \times 80\text{ mm}$ presisi).
+  - **Integrasi Pipeline & Processor (`engine/processor.py`)**: Menambahkan dukungan format `"pdf"` ke dalam pipeline `process_label()`, menghasilkan berkas `label.pdf` ke dalam dictionary hasil render `results["pdf"]` saat format dipilih atau saat `formats="all"`.
+  - **Opsi Target Format GUI & Export As (`gui/components/control_panel.py`, `gui/main_window.py`)**: Menambahkan `"pdf"` ke dalam dropdown target format Control Panel serta mapping dialog ekspor berkas `"PDF Document (*.pdf)"`.
+  - **Dukungan CLI (`cli.py`)**: Menambahkan pilihan `"pdf"` pada argumen `--format` untuk integrasi CLI SAP background job.
+  - **Ukuran File Efisien**: Verifikasi ukuran berkas PDF pada 600 DPI hanya sekitar 26 KB (jauh di bawah batas target < 100 KB).
+  - **Pengujian Unit Test**: Menambahkan `test_pdf_encoder_format` di `tests/test_encoders.py` dan `test_format_pdf_generation_and_compression` di `tests/test_processor.py`. Seluruh unit test suite lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh binary PyInstaller `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
+- **19-08-2026**: Perbaikan Bug: 8-Bit Byte Alignment untuk Thermal Encoders (IPL, TSPL, ZPL) pada Multi-DPI (600 DPI):
+  - **Akar Masalah**: Pada 600 DPI, kalkulasi lebar $(\text{200 mm} / 25.4) \times 600 = 4724\text{ px}$ tidak habis dibagi 8 ($4724 \pmod 8 = 4$). Hal ini memicu `ValueError` pada `ipl_encoder.py` karena protokol IPL mewajibkan alignment byte utuh ($width \pmod 8 = 0$) untuk mencegah korupsi stream bitmap kontinu.
+  - **8-Bit Byte Alignment Formula (`engine/processor.py`)**: Menambahkan fungsi `align_to_byte_boundary(pixels, alignment=8)` yang memastikan lebar piksel selalu dibulatkan ke kelipatan 8 terdekat ke atas ($((raw\_w + 7) // 8) * 8$):
+    - 203.2 DPI $\rightarrow 1600\text{ px}$ (200 bytes/row)
+    - 300.0 DPI $\rightarrow 2368\text{ px}$ (296 bytes/row)
+    - 600.0 DPI $\rightarrow 4728\text{ px}$ (591 bytes/row)
+  - **Rasterizer Exact Target Fitting (`engine/rasterizer.py`)**: Memperbarui `svg_to_png()` agar memvalidasi dan mem-pad PNG output ke kanvas dimensi eksak $(target\_w\_px, target\_h\_px)$ dengan latar belakang putih murni, mencegah perbedaan dimensi akibat preserve-aspect-ratio resvg.
+  - **Sinkronisasi GUI Canvas & Inspection Map (`gui/main_window.py`)**: Menyelaraskan kalkulasi `target_w_px` pada `_on_render_success` dengan formula kelipatan 8 yang sama.
+  - **Pengujian & Validasi**: Menambahkan unit test `test_600_dpi_all_formats_including_ipl` dan memperbarui `test_dynamic_dpi_resolutions` di `tests/test_processor.py` serta parameterized scaling di `tests/test_coordinate_alignment.py`. Semua unit test lulus 100%.
+  - **Binary Rebuild**: Melakukan rebuild penuh binary PyInstaller `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
+- **19-08-2026**: Perbaikan Bug: Dynamic DPI Resolution Scaling & Real-time Canvas Header Update:
+  - **Dynamic Dimension Calculation**: Memperbarui `engine/processor.py` (`process_label`) agar menghitung resolusi pixel kanvas secara dinamis berdasarkan formula dimensi fisik $(\text{Width}_{mm} / 25.4) \times \text{DPI}$ dan $(\text{Height}_{mm} / 25.4) \times \text{DPI}$ (203.2 DPI $\rightarrow$ 1600x640 px, 300 DPI $\rightarrow$ 2362x945 px, 600 DPI $\rightarrow$ 4724x1890 px) alih-alih hardcode 1600x640 px.
+  - **Dynamic Canvas Header & Resolution Label**: Memperbarui `gui/components/raster_canvas.py` (`RasterCanvasWidget`) dengan menambahkan `self.lbl_title`, `set_canvas_metadata()`, dan memperbarui `load_image()` sehingga judul preview `"Visual Thermal Print Preview ({dpi} DPI)"` dan label resolusi `"Resolution: {w} x {h} px ({mm_w:.1f} x {mm_h:.1f} mm @ {dpi} DPI)"` selalu sinkron secara dinamis dengan DPI aktif.
+  - **Inspection Engine Calibration**: Mengalirkan dimensi piksel dinamis `target_width_px` dan `target_height_px` dari `gui/main_window.py` ke `SVGInspectionEngine.build_inspection_map(...)` agar kalibrasi highlight overlay presisi di semua tingkat resolusi.
+  - **Pengujian Unit Test**: Menambahkan `test_dynamic_dpi_resolutions` di `tests/test_processor.py` untuk memverifikasi dimensi raster preview pada setiap resolusi DPI (48 test cases lulus 100%).
+  - **Binary Rebuild**: Melakukan rebuild penuh binary PyInstaller `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
+- **19-08-2026**: Implementasi Dynamic DPI Selector (203.2, 300, 600 DPI) & Live Pipeline Re-rendering:
+  - **DPI Selector Control Panel**: Menambahkan Combobox Printer DPI pada `gui/components/control_panel.py` dengan preset `203.2 DPI (8 dpmm)`, `300 DPI (12 dpmm)`, dan `600 DPI (24 dpmm)`, beserta helper method `get_dpi()`.
+  - **Thread-Safe Pipeline Integration**: Mengalirkan dynamic DPI parameter melalui `gui/worker.py` (`RenderWorker`), `gui/main_window.py` (`execute_render`, `execute_dry_run`, `_perform_live_update`), dan `SVGInspectionEngine.build_inspection_map(..., dpi=dpi)`.
+  - **Live Auto Re-render on DPI Change**: Menghubungkan event `<<ComboboxSelected>>` pada combobox DPI ke `_on_dpi_changed()` di `MainWindow` dengan mekanisme debouncing (200ms) untuk auto re-render label secara instan saat resolusi printhead diubah.
+  - **Pengujian Multi-DPI**: Menambahkan parameterized unit tests di `tests/test_coordinate_alignment.py` untuk memvalidasi koordinat bounding box pada berbagai tingkatan DPI (203.2, 300, 600) serta parsing preset DPI (total 47 test cases lulus 100%).
+  - **Binary Rebuild**: Melakukan rebuild penuh binary PyInstaller `dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`.
+
+- **19-08-2026**: Implementasi Phase 1: Perbaikan Bounding Box Coordinate Alignment dan Dotted Path Utilities:
+  - **Akar Masalah Horizontal Shift**: `engine/binding_map.py` sebelumnya menghitung scaling factor menggunakan offset `root_box` (`target_width_px / (root_box[0] * 2 + root_box[2])`), menyebabkan penyimpangan koordinat hingga ~118px ke kanan pada elemen tengah/kanan kanvas.
+  - **Perbaikan Formula Scaling**: Mengganti kalkulasi dengan rasio dimensi fisik murni:
+    $$\text{Scale}_X = \frac{\text{PNG Target Width}}{\frac{\text{SVG Width (mm)}}{25.4} \times \text{DPI}}, \quad \text{Scale}_Y = \frac{\text{PNG Target Height}}{\frac{\text{SVG Height (mm)}}{25.4} \times \text{DPI}}$$
+  - **Resolusi Hierarki `<text>`**: Memperbarui `_find_queryable_id()` di `engine/binding_map.py` agar memprioritaskan ancestor `<text>` daripada elemen anak `<tspan>` sehingga bounding box mencakup keseluruhan teks target.
+  - **Utilitas Kontrak Dotted Path (`engine/binding_utils.py`)**: Membuat fungsi `get_json_value_at_path`, `set_json_value_at_path`, dan `validate_json_value_type` untuk manipulasi data leaf JSON secara terisolasi.
+  - **Zoom-Aware Hit Testing**: Memperbarui `BoundingBox.contains_point()` dan `RasterCanvasWidget._find_box_at()` agar toleransi margin klik menyesuaikan faktor zoom viewport kanvas.
+  - **Pengujian & Build**: Menambahkan pengujian komprehensif di `tests/test_coordinate_alignment.py` (total 43 test suite lulus 100%) dan me-rebuild binary `dist/label_engine.exe` serta `dist/LabelPreviewApp.exe`.
+
+- **19-08-2026**: Perbaikan Bug Preview Canvas "Failed to render preview image (preview.png not found)" ketika Target Format bukan "all":
+  - Memperbarui `engine/processor.py` agar selalu mendaftarkan path `preview.png` dan `label.svg` ke dictionary `results` (`results["png"] = png_path` dan `results["svg"] = svg_path`) pada setiap proses render, tanpa memandang target export format yang dipilih (`svg`, `zpl`, `tspl`, `ipl`, `bmp`, atau `all`).
+  - Menambahkan unit test komprehensif `tests/test_processor.py` untuk memvalidasi ketersediaan `preview.png` dan artefak SVG pada berbagai opsi target format.
+  - Melakukan rebuild kedua executable (`dist/label_engine.exe` dan `dist/LabelPreviewApp.exe`) serta memverifikasi eksekusi CLI dan GUI rendering preview berjalan mulus.
+
+
+- **19-08-2026**: Melakukan rebuild penuh binary standalone PyInstaller untuk kedua executable:
+  - `dist/label_engine.exe` (CLI Headless Engine)
+  - `dist/LabelPreviewApp.exe` (Desktop Preview & Two-Way Inspection GUI)
+  - Menguji eksekusi binary `label_engine.exe` dengan opsi `--help` dan integrasi rendering preview format PNG berhasil tanpa error.
+
+
+- **19-08-2026**: Mengimplementasikan fitur **Interactive Two-Way Inspection Mode & Live Value Editing** antara SAP JSON Contract Tree dan Visual Thermal Canvas Preview:
+  - Membuat modul `engine/binding_map.py` (`SVGInspectionEngine`) untuk mengekstrak data binding (`data-field`, `data-code`, `{{token}}`), memanggil `resvg.exe --query-all`, dan mengkalibrasi koordinat bounding box ke target raster canvas.
+  - Memperbarui `gui/components/json_inspector.py` dengan tracking path hierarki, metode `select_path()`, event selection, dan inline double-click editing nilai leaf JSON.
+  - Memperbarui `gui/components/raster_canvas.py` dengan vector glowing highlight overlays, translation klik kanvas ke JSON path, auto-centering viewport, dan hover indicator.
+  - Memperbarui `gui/main_window.py` untuk mengintegrasikan dua arah binding JSON <-> Canvas, debounce live re-render saat nilai diedit (350ms), serta menambahkan opsi target format `svg` di `gui/components/control_panel.py`.
+  - Menambahkan unit test baru di `tests/test_gui_components.py` untuk memvalidasi pemetaan bounding box dan interaktivitas seleksi/edit.
+
+
 - **19-08-2026**: Membuat file `README.md` komprehensif yang mencakup ringkasan arsitektur 3-layer, fitur, struktur direktori, instalasi, panduan CLI & GUI, panduan kontrak JSON v1.1, pembuatan template SVG, dan build executable.
 
 - **19-08-2026**: Menginisialisasi Git repository lokal, melengkapi `.gitignore`, mengonfigurasi remote origin (`https://github.com/pikidisini/JSON_LABEL_THERMAL_PRINTER_PARSER.git`), dan melakukan initial push ke branch `main`.

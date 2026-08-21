@@ -45,7 +45,7 @@ def create_barcode_svg_group(
     height: float,
     group_id: Optional[str] = None,
 ) -> ET.Element:
-    """Creates an SVG <g> containing black <rect> elements for 1D barcode."""
+    """Creates an SVG <g> containing consolidated <path> for 1D barcode with crispEdges."""
     group = ET.Element("g")
     if group_id:
         group.set("id", group_id)
@@ -57,6 +57,7 @@ def create_barcode_svg_group(
     total_modules = len(pattern)
     module_width = width / float(total_modules)
 
+    path_d = []
     idx = 0
     while idx < total_modules:
         if pattern[idx] == "1":
@@ -64,19 +65,21 @@ def create_barcode_svg_group(
             while idx < total_modules and pattern[idx] == "1":
                 idx += 1
             run_length = idx - start_idx
-            bar_x = x + (start_idx * module_width)
-            bar_w = run_length * module_width
-
-            rect = ET.Element("rect")
-            rect.set("x", f"{bar_x:.4f}")
-            rect.set("y", f"{y:.4f}")
-            rect.set("width", f"{bar_w:.4f}")
-            rect.set("height", f"{height:.4f}")
-            rect.set("fill", "#000000")
-            rect.set("stroke", "none")
-            group.append(rect)
+            x0 = x + (start_idx * module_width)
+            x1 = x + ((start_idx + run_length) * module_width)
+            y0 = y
+            y1 = y + height
+            path_d.append(f"M{x0:.4f},{y0:.4f}H{x1:.4f}V{y1:.4f}H{x0:.4f}Z")
         else:
             idx += 1
+
+    if path_d:
+        path_elem = ET.Element("path")
+        path_elem.set("d", " ".join(path_d))
+        path_elem.set("fill", "#000000")
+        path_elem.set("stroke", "none")
+        path_elem.set("shape-rendering", "crispEdges")
+        group.append(path_elem)
 
     return group
 
@@ -89,7 +92,7 @@ def create_qr_svg_group(
     height: float,
     group_id: Optional[str] = None,
 ) -> ET.Element:
-    """Creates an SVG <g> containing black <rect> modules for 2D QR Code."""
+    """Creates an SVG <g> containing consolidated horizontal run-length <path> for 2D QR Code with crispEdges."""
     group = ET.Element("g")
     if group_id:
         group.set("id", group_id)
@@ -107,19 +110,30 @@ def create_qr_svg_group(
     offset_x = x + (width - (cols * box_size)) / 2.0
     offset_y = y + (height - (rows * box_size)) / 2.0
 
+    path_d = []
     for r in range(rows):
-        for c in range(cols):
+        c = 0
+        while c < cols:
             if matrix[r][c]:
-                module_x = offset_x + (c * box_size)
-                module_y = offset_y + (r * box_size)
-                rect = ET.Element("rect")
-                rect.set("x", f"{module_x:.4f}")
-                rect.set("y", f"{module_y:.4f}")
-                rect.set("width", f"{box_size:.4f}")
-                rect.set("height", f"{box_size:.4f}")
-                rect.set("fill", "#000000")
-                rect.set("stroke", "none")
-                group.append(rect)
+                start_c = c
+                while c < cols and matrix[r][c]:
+                    c += 1
+                span = c - start_c
+                x0 = offset_x + (start_c * box_size)
+                x1 = offset_x + ((start_c + span) * box_size)
+                y0 = offset_y + (r * box_size)
+                y1 = offset_y + ((r + 1) * box_size)
+                path_d.append(f"M{x0:.4f},{y0:.4f}H{x1:.4f}V{y1:.4f}H{x0:.4f}Z")
+            else:
+                c += 1
+
+    if path_d:
+        path_elem = ET.Element("path")
+        path_elem.set("d", " ".join(path_d))
+        path_elem.set("fill", "#000000")
+        path_elem.set("stroke", "none")
+        path_elem.set("shape-rendering", "crispEdges")
+        group.append(path_elem)
 
     return group
 

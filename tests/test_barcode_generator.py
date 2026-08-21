@@ -40,17 +40,21 @@ class TestBarcodeGenerator(unittest.TestCase):
 
     def test_create_barcode_svg_group(self):
         group = create_barcode_svg_group("TEST1234", x=10, y=20, width=50, height=15)
-        rects = group.findall("rect")
-        self.assertTrue(len(rects) > 0)
-        first_rect = rects[0]
-        self.assertEqual(first_rect.attrib["y"], "20.0000")
-        self.assertEqual(first_rect.attrib["height"], "15.0000")
-        self.assertEqual(first_rect.attrib["fill"], "#000000")
+        paths = group.findall("path")
+        self.assertTrue(len(paths) > 0)
+        path = paths[0]
+        self.assertEqual(path.attrib["fill"], "#000000")
+        self.assertEqual(path.attrib["shape-rendering"], "crispEdges")
+        self.assertTrue(path.attrib["d"].startswith("M10.0000,20.0000"))
 
     def test_create_qr_svg_group(self):
         group = create_qr_svg_group("TEST_QR_PAYLOAD", x=5, y=5, width=20, height=20)
-        rects = group.findall("rect")
-        self.assertTrue(len(rects) > 0)
+        paths = group.findall("path")
+        self.assertTrue(len(paths) > 0)
+        path = paths[0]
+        self.assertEqual(path.attrib["fill"], "#000000")
+        self.assertEqual(path.attrib["shape-rendering"], "crispEdges")
+        self.assertTrue("M" in path.attrib["d"])
 
     def test_inject_barcodes_and_qr_full(self):
         contract_data = load_json_contract(self.sample_json_path)

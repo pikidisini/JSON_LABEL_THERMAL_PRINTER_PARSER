@@ -49,6 +49,19 @@ class _ToolTip:
 class ControlPanelWidget(ttk.Frame):
     """Action bar & control panel for label inspection operations."""
 
+    DPI_PRESETS = [
+        "203.2 DPI (8 dpmm)",
+        "300 DPI (12 dpmm)",
+        "600 DPI (24 dpmm)",
+    ]
+
+    ROTATION_PRESETS = [
+        "0°",
+        "90°",
+        "180°",
+        "270°",
+    ]
+
     def __init__(
         self,
         parent: tk.Widget,
@@ -56,6 +69,8 @@ class ControlPanelWidget(ttk.Frame):
         on_dry_run_clicked: Optional[Callable[[], None]] = None,
         on_print_clicked: Optional[Callable[[], None]] = None,
         on_export_clicked: Optional[Callable[[], None]] = None,
+        on_dpi_changed: Optional[Callable[[float], None]] = None,
+        on_rotation_changed: Optional[Callable[[int], None]] = None,
         **kwargs,
     ):
         super().__init__(parent, **kwargs)
@@ -63,12 +78,54 @@ class ControlPanelWidget(ttk.Frame):
         self.on_dry_run_clicked = on_dry_run_clicked
         self.on_print_clicked = on_print_clicked
         self.on_export_clicked = on_export_clicked
+        self.on_dpi_changed = on_dpi_changed
+        self.on_rotation_changed = on_rotation_changed
 
         self.var_json_path = tk.StringVar()
         self.var_template_path = tk.StringVar()
         self.var_format = tk.StringVar(value="all")
+        self.var_dpi = tk.StringVar(value=self.DPI_PRESETS[0])
+        self.var_rotation = tk.StringVar(value=self.ROTATION_PRESETS[0])
+        self.var_threshold = tk.IntVar(value=128)
+        self.var_super_sample = tk.BooleanVar(value=True)
 
         self._build_ui()
+
+    def get_dpi(self) -> float:
+        """Parses and returns the currently selected DPI resolution as a float."""
+        val = self.var_dpi.get().strip()
+        try:
+            # Extract leading numeric part (e.g. '203.2' from '203.2 DPI (8 dpmm)')
+            dpi_str = val.split()[0] if val else "203.2"
+            return float(dpi_str)
+        except (ValueError, IndexError):
+            return 203.2
+
+    def get_rotation(self) -> int:
+        """Parses and returns the currently selected rotation angle as an integer (0, 90, 180, 270)."""
+        val = self.var_rotation.get().strip()
+        try:
+            rot_str = val.replace("°", "").strip()
+            return int(rot_str) if rot_str else 0
+        except (ValueError, IndexError):
+            return 0
+
+    def get_binarization_threshold(self) -> int:
+        """Returns the current monochrome binarization threshold [0..255]."""
+        try:
+            val = int(self.var_threshold.get())
+            return max(0, min(255, val))
+        except (ValueError, tk.TclError):
+            return 128
+
+    def get_super_sample_factor(self) -> int:
+        """Returns super-sampling factor (2 if enabled, 1 if disabled)."""
+        return 2 if self.var_super_sample.get() else 1
+
+    def set_binarization_threshold(self, value: int) -> None:
+        """Sets the binarization threshold value."""
+        clamped = max(0, min(255, int(value)))
+        self.var_threshold.set(clamped)
 
     def _build_ui(self):
         # Frame 1: File Pickers
@@ -87,19 +144,90 @@ class ControlPanelWidget(ttk.Frame):
 
         files_frame.columnconfigure(1, weight=1)
 
-        # Frame 2: Options & Format
-        opts_frame = ttk.LabelFrame(self, text="Target Format", padding=6)
+        # Frame 2: Format, DPI, Rotation & Binarization Quality Settings
+        opts_frame = ttk.LabelFrame(self, text="Output, DPI, Rotation & Quality", padding=6)
         opts_frame.pack(side="left", fill="y", padx=4, pady=2)
 
-        ttk.Label(opts_frame, text="Format:").pack(side="top", anchor="w")
+        # Format Combobox
+        fmt_container = ttk.Frame(opts_frame)
+        fmt_container.pack(side="left", padx=3, pady=0)
+        ttk.Label(fmt_container, text="Format:").pack(side="top", anchor="w")
         cb_format = ttk.Combobox(
-            opts_frame,
+            fmt_container,
             textvariable=self.var_format,
-            values=["all", "zpl", "tspl", "ipl", "png", "bmp"],
+            values=["all", "zpl", "tspl", "ipl", "pdf", "svg", "png", "bmp"],
             state="readonly",
-            width=12,
+            width=8,
         )
         cb_format.pack(side="top", pady=2, fill="x")
+
+        # DPI Combobox
+        dpi_container = ttk.Frame(opts_frame)
+        dpi_container.pack(side="left", padx=3, pady=0)
+        ttk.Label(dpi_container, text="Printer DPI:").pack(side="top", anchor="w")
+        cb_dpi = ttk.Combobox(
+            dpi_container,
+            textvariable=self.var_dpi,
+            values=self.DPI_PRESETS,
+            state="readonly",
+            width=16,
+        )
+        cb_dpi.pack(side="top", pady=2, fill="x")
+        cb_dpi.bind("<<ComboboxSelected>>", self._handle_dpi_selected)
+        _ToolTip(cb_dpi, "Select thermal printhead resolution (203.2 / 300 / 600 DPI)")
+
+        # Rotation Combobox
+        rot_container = ttk.Frame(opts_frame)
+        rot_container.pack(side="left", padx=3, pady=0)
+        ttk.Label(rot_container, text="Rotation:").pack(side="top", anchor="w")
+        cb_rot = ttk.Combobox(
+            rot_container,
+            textvariable=self.var_rotation,
+            values=self.ROTATION_PRESETS,
+            state="readonly",
+            width=8,
+        )
+        cb_rot.pack(side="top", pady=2, fill="x")
+        cb_rot.bind("<<ComboboxSelected>>", self._handle_rotation_selected)
+        _ToolTip(cb_rot, "Rotate image (0°, 90°, 180°, 270° CW) before 1-bit & printer encoding")
+
+        # Threshold Spinbox + Auto Otsu Button
+        thresh_container = ttk.Frame(opts_frame)
+        thresh_container.pack(side="left", padx=3, pady=0)
+        ttk.Label(thresh_container, text="Threshold (0-255):").pack(side="top", anchor="w")
+        thresh_sub = ttk.Frame(thresh_container)
+        thresh_sub.pack(side="top", pady=2, fill="x")
+        sp_thresh = ttk.Spinbox(
+            thresh_sub,
+            from_=0,
+            to=255,
+            increment=1,
+            textvariable=self.var_threshold,
+            width=5,
+        )
+        sp_thresh.pack(side="left", padx=(0, 2))
+        _ToolTip(sp_thresh, "Monochrome binarization threshold (0-255). Lower = thinner strokes, Higher = bolder text")
+
+        btn_otsu = ttk.Button(
+            thresh_sub,
+            text="Auto",
+            width=4,
+            command=self._handle_auto_otsu,
+        )
+        btn_otsu.pack(side="left")
+        _ToolTip(btn_otsu, "Auto-detect optimal threshold using Otsu algorithm from rendered preview")
+
+        # Super-Sampling 2x Checkbox
+        ss_container = ttk.Frame(opts_frame)
+        ss_container.pack(side="left", padx=3, pady=0)
+        ttk.Label(ss_container, text="Anti-Aliasing:").pack(side="top", anchor="w")
+        chk_ss = ttk.Checkbutton(
+            ss_container,
+            text="2x SuperSample",
+            variable=self.var_super_sample,
+        )
+        chk_ss.pack(side="top", pady=4)
+        _ToolTip(chk_ss, "Render at 2x resolution and downscale with LANCZOS to smooth text outlines and borders")
 
         # Frame 3: Action Buttons
         actions_frame = ttk.LabelFrame(self, text="Engine Actions", padding=6)
@@ -168,6 +296,14 @@ class ControlPanelWidget(ttk.Frame):
         btn_export.pack(side="left", padx=4, pady=2)
         _ToolTip(btn_export, "Simpan file hasil render (SVG/PNG/BMP/ZPL/TSPL/IPL) ke folder tujuan")
 
+    def _handle_dpi_selected(self, _event=None):
+        if self.on_dpi_changed:
+            self.on_dpi_changed(self.get_dpi())
+
+    def _handle_rotation_selected(self, _event=None):
+        if self.on_rotation_changed:
+            self.on_rotation_changed(self.get_rotation())
+
     def _browse_json(self):
         filename = filedialog.askopenfilename(
             title="Select SAP JSON Contract File",
@@ -183,6 +319,23 @@ class ControlPanelWidget(ttk.Frame):
         )
         if filename:
             self.var_template_path.set(filename)
+
+    def _handle_auto_otsu(self):
+        """Calculates and sets Otsu threshold using preview.png from out/ directory or triggers render if missing."""
+        out_preview = Path("out") / "preview.png"
+        if out_preview.is_file():
+            try:
+                from engine.rasterizer import calculate_otsu_threshold
+                optimal_t = calculate_otsu_threshold(out_preview)
+                self.set_binarization_threshold(optimal_t)
+                messagebox.showinfo("Auto Threshold", f"Optimal Otsu Threshold detected: {optimal_t}")
+                if self.on_render_clicked:
+                    self.on_render_clicked()
+                return
+            except Exception as e:
+                messagebox.showwarning("Auto Threshold", f"Could not calculate Otsu threshold: {e}")
+        else:
+            messagebox.showinfo("Auto Threshold", "Please click 'Render & Inspect' first to generate preview.")
 
     def _handle_render(self):
         if not self.var_json_path.get() or not self.var_template_path.get():
